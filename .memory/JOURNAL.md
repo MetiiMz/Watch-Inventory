@@ -3,6 +3,20 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## 4fe5591 — 2026-09-07 (session IV, bugfix)
+**type:** fix
+**scope:** settings / app.js
+**subject:** site-icon upload was silently swallowed by app.js auto-binding — now fixed + hardened
+
+- **User report:** «انتخاب آیکون هیچ اتفاقی نمی‌افتد — آیا دکمه‌ی Apply لازم است؟»
+- **ROOT CAUSE (real, confirmed):** app.js `$$(".img-upload").forEach(setupImageUpload)` auto-bound the icon wrapper in settings.html (same class). Its change handler runs FIRST, starts a generic multipart upload, and **synchronously clears `input.value = ""`** → the page's dedicated icon handler (bound second) reads `files[0]` → already empty → `return`. Result: icon uploaded as generic image, `site_icon` setting NEVER set, no preview update, no icon toast — "nothing happens". Server side was always fine (upload + /api/settings/site-icon verified by curl).
+- **Debug journey (recorded for reuse):** CDP/headless Chromium harness (node 24 built-in WebSocket, /tmp/icon_cdp.js pattern): network capture showed `ERR_ALPN_NEGOTIATION_FAILED` on multipart POSTs with CDP-injected files — a SNAP-CHROMIUM artifact (confined browser can't read host files set via DOM.setFileInputFiles; JS-built `File`/Blob uploads work). Classic bug-masking lesson: `input.value=""` cannot clear a `defineProperty`-mocked FileList, which is why the first CDP test "passed" while the real flow was broken. Always pair mocked-input tests with handler-order analysis.
+- **Fix:** (1) app.js auto-binding now skips `[data-manual]` (`.img-upload:not([data-manual])` in both init + modal:opened); settings icon wrapper marked `data-manual`. (2) Icon upload switched to robust JSON/base64 path: `api_upload` now accepts both multipart (unchanged for products/repairs) and `{kind,name,data}` JSON (dataURL/base64, 2MB cap, shared `_save_uploaded`). (3) UX: preview image is clickable, filename + «در حال ذخیره…» shown live, explicit success toast («همین حالا اعمال شد ✓»), button disabled during upload, cache-busted preview, placeholder SVG fixed (`innerHTML` on `<img>` never worked → inline data-URI src). **Answer to user: no Apply button — applies instantly on select**, now stated in the hint text.
+- **Verified:** node --check; manage.py check; curl JSON upload (200, real PNG saved); headless full-flow with mocked File → single JSON upload, no stray multipart, site_icon persisted, correct toast, products-page auto-binding regression clean (1 img-upload bound, no exceptions). All test icon files deleted, site_icon reset to "", server stopped. Commit `4fe5591`.
+
+---
+
+
 ## 7f1a632 — 2026-09-07 (session IV, feature)
 **type:** feat
 **scope:** calendar
