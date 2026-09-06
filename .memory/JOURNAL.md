@@ -3,6 +3,19 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## 1115b6d — 2026-09-07 (session IV, feature)
+**type:** feat
+**scope:** calendar
+**subject:** day-box items minimized to image+name+price (repairs: +customer, no price); totals جمع مبلغ خرید / جمع مبلغ فروش
+
+- **User request:** «جعبه‌ی سمت چپ فقط تصویر، نام ساعت و قیمت را نشان دهد — خرید: قیمت خرید، فروش: قیمت فروش، تعمیر: فقط تصویر و نام ساعت و نام شخص — و زیر خریدها و فروش‌ها جمع مبلغ خرید و جمع مبلغ فروش.»
+- **eventItem changes (static/js/calendar.js:93):** removed the sub-line for buy/sell (supplier / sale-type+buyer+phone gone — details remain in the click modal); buy price now `purchase_price_display` (was `total_value_display` — same value post-quantity-removal but explicit); sell price `final_price_display || sale_price_display` (final==sale when no discount, discounted price otherwise); repairs (`rep_in`/`rep_out`): NO price element, meta = customer name only (`customer_name || customer` — the old code read `e.customer` which repair_dict doesn't even have, so customer never showed before); name resolution `name || product_name || watch_name`; image `image || product_image` fallback (same as detail modal).
+- **Totals:** purchases → «جمع مبلغ خرید» (sum of `purchase_price` numeric, blue); sales → «جمع مبلغ فروش» (sum of `final_price`, green). REMOVED the «جمع سود روز» row per the minimal-box request (profit still visible per-sale in the click modal and on the dashboard chart). Was: «جمع ارزش خرید روز»/«جمع فروش روز»+«جمع سود روز».
+- **Verified:** node --check pass; isolated eventItem render test for all 4 kinds (img/price/meta flags correct — sell img:false in first run was a test-object artifact using old keys, re-verified true with product_image fallback); live API data shapes confirmed: 2026-09-06 sales carry name+image+final_price_display, rep_in «الکسا/اسدی», 2026-09-01 purchase «ویولت زنانه کرنو/۱۲٬۰۰۰٬۰۰۰». Server stopped. Committed `1115b6d`.
+
+---
+
+
 ## 6364203 — 2026-09-07 (session IV, fix)
 **type:** fix
 **scope:** calendar
