@@ -3,6 +3,21 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## 6e8cce4 — 2026-09-07 (session IV, hotfix)
+**type:** fix
+**scope:** sales (sold page)
+**subject:** /sold page rendered nothing — missing $() wrapper killed the whole sold.js script
+
+- **Symptom (user):** «صفحه فروش‌ها هیچ چیز نشان نمی‌دهد». API `/api/sales` and the template were fine (curl 200, 4 sales, all fields present), but headless Chromium showed 0 rows.
+- **Root cause:** `static/js/sold.js:323` — `["#filter-date-from","#filter-date-to"].forEach((sel) => { sel.addEventListener(...) })` was missing the `$()` wrapper, so `sel` was the selector STRING → `TypeError: sel.addEventListener is not a function`. Because the throw happens at TOP-LEVEL evaluation, everything after it — including the `DOMContentLoaded → loadSales()` registration — never ran → table stayed empty forever. Note the earlier `node --check` could not catch this (it's a runtime error, not syntax).
+- **Fix:** one char-class change — `$(sel).addEventListener(...)`. Audited all `static/js/*.js` for the same pattern (`[...].forEach((sel)=>` loops): `products.js:481/484` already correct; bug was only in sold.js.
+- **Debug technique that nailed it (remember):** grep-based ID checks and API curls were all green — only real execution exposed it. `chromium --headless --no-sandbox --virtual-time-budget=6000 --dump-dom URL` + `--enable-logging=stderr --v=0` prints CONSOLE errors to stderr. Repro signature: summary chips rendered («فقره» present) but `ev-row` count 0 and `#sold-empty` still hidden = render() threw between chips and rows.
+- **Verified after fix:** node --check pass; headless DOM now has 4 `ev-row`s, no console errors; row for sale 12 shows every required detail — image `/data/images/img_….webp`, name «الکسا اتومات», reference pill `2105`, site-code pill `121553`, office-code pill `159`, buyer «علی», phone ۰۹۱۲۲۴۶۰۳۵۷, Jalali date ۱۴۰۵/۰۶/۱۶. Click-row detail modal (showSaleDetail) adds invoice code, prices/discount/profit/purchase, brand, supplier, sale type, payment breakdown, settlement status, notes.
+- Committed `6e8cce4` (sold.js only). Smoke server stopped.
+
+---
+
+
 ## 3984de6 — 2026-09-07 (session IV, correction)
 **type:** fix
 **scope:** dashboard
