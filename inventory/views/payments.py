@@ -18,7 +18,7 @@ def api_payments(request):
 
     status = clean(request.GET.get("status"))  # all | unpaid | paid
     q = clean(request.GET.get("q"))
-    qs = Payment.objects.all()
+    qs = Payment.objects.select_related("product").all()
     if status == "unpaid":
         qs = qs.filter(total_amount__gt=F("paid_amount") + 0.001)
     elif status == "paid":
@@ -109,10 +109,19 @@ def _update(request, payment):
     payment.total_amount = total
     payment.paid_amount = paid
     payment.pay_date = pay_date
+    # وضعیت تسویه — اگر با ویرایش کامل/ناقص شد، تاریخ تسویه ثبت/پاک می‌شود
+    now_settled = total - paid <= 0.001
+    if now_settled and not payment.settled_at:
+        payment.settled_at = today_iso()
+    elif not now_settled:
+        payment.settled_at = ""
+    if payment.sale_id:
+        Sale.objects.filter(id=payment.sale_id).update(
+            is_settled=now_settled, settled_at=payment.settled_at)
     payment.notes = clean(payload.get("notes"))
     payment.save(update_fields=[
         "product_name", "customer_name", "customer_phone",
-        "total_amount", "paid_amount", "pay_date", "notes", "updated_at"])
+        "total_amount", "paid_amount", "pay_date", "settled_at", "notes", "updated_at"])
     return ok(payment=payment_dict(payment))
 
 
@@ -132,10 +141,14 @@ def api_payment_add(request, payid):
             return fail(
                 f"بیشتر از مانده‌ی فقره است (مانده: {fa_money(remaining)} تومان)")
         payment.paid_amount = payment.paid_amount + amount
-        payment.save(update_fields=["paid_amount", "updated_at"])
+        now_settled = payment.total_amount - payment.paid_amount <= 0.001
+        if now_settled and not payment.settled_at:
+            payment.settled_at = today_iso()
+        payment.save(update_fields=["paid_amount", "settled_at", "updated_at"])
         # تسویه‌ی کامل شد؟ فروش بیعانه‌ی متصل را تسویه‌شده کن
-        if payment.sale_id and payment.total_amount - payment.paid_amount <= 0.001:
-            Sale.objects.filter(id=payment.sale_id).update(is_settled=True)
+        if payment.sale_id and now_settled:
+            Sale.objects.filter(id=payment.sale_id).update(
+                is_settled=True, settled_at=payment.settled_at)
     return ok(payment=payment_dict(payment))
 
 
@@ -150,11 +163,14 @@ def api_payment_settle_full(request, payid):
         if remaining <= 0.001:
             return fail("این فقره قبلاً تسویه شده است")
         payment.paid_amount = payment.total_amount
-        payment.save(update_fields=["paid_amount", "updated_at"])
+        if not payment.settled_at:
+            payment.settled_at = today_iso()
+        payment.save(update_fields=["paid_amount", "settled_at", "updated_at"])
         if payment.sale_id:
             # مانده به‌عنوان پرداخت نقدی به فروش اضافه می‌شود
             Sale.objects.filter(id=payment.sale_id).update(
-                is_settled=True, paid_cash=F("paid_cash") + remaining)
+                is_settled=True, paid_cash=F("paid_cash") + remaining,
+                settled_at=payment.settled_at)
     return ok()
 
 

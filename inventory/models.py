@@ -53,6 +53,7 @@ class Sale(models.Model):
     paid_pos = models.FloatField(default=0)
     paid_card2card = models.FloatField(default=0)
     is_settled = models.BooleanField(default=True, db_index=True)
+    settled_at = models.CharField(max_length=10, default="", blank=True)
     notes = models.TextField(default="", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -79,6 +80,7 @@ class Payment(models.Model):
     total_amount = models.FloatField(default=0)
     paid_amount = models.FloatField(default=0)
     pay_date = models.CharField(max_length=10, default="", blank=True, db_index=True)
+    settled_at = models.CharField(max_length=10, default="", blank=True)
     notes = models.TextField(default="", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

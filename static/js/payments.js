@@ -76,6 +76,9 @@ function render() {
       <div class="ec-top">
         <label class="row" style="gap:10px;align-items:flex-start;cursor:pointer">
           <input type="checkbox" class="row-check" data-id="${p.id}" ${checked} style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer;margin-top:3px">
+          ${p.product_image
+            ? `<img class="thumb" style="width:42px;height:42px;border-radius:11px" src="/data/images/${encodeURIComponent(p.product_image)}" alt="" loading="lazy">`
+            : `<span class="thumb" style="width:42px;height:42px;border-radius:11px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="6.4"/><path d="M12 9.2V12l2.1 1.5"/></svg></span>`}
           <div class="li-main">
             <div class="ec-title">${esc(p.product_name)}</div>
             <div class="ec-sub">${esc(p.customer_name) || "بدون نام"}${p.customer_phone ? " — " + p.customer_phone_fa : ""}</div>
@@ -90,6 +93,11 @@ function render() {
         <div class="ec-row"><span class="k">مبلغ کل</span><span class="v">${p.total_amount_display} تومان</span></div>
         <div class="ec-row"><span class="k">پرداخت‌شده</span><span class="v" style="color:var(--green)">${p.paid_amount_display} تومان</span></div>
         <div class="ec-row"><span class="k">مانده</span><span class="v" style="color:${settled ? "var(--green)" : "var(--red)"}">${p.remaining_display} تومان</span></div>
+        ${p.purchase_price_display ? `<div class="ec-row"><span class="k">قیمت خرید ساعت</span><span class="v">${p.purchase_price_display} تومان</span></div>` : ""}
+        ${p.purchase_date_fa ? `<div class="ec-row"><span class="k">تاریخ خرید ساعت</span><span class="v">${p.purchase_date_fa}</span></div>` : ""}
+        ${p.reference ? `<div class="ec-row"><span class="k">رفرنس</span><span class="v"><span class="code-pill">${esc(p.reference)}</span></span></div>` : ""}
+        ${p.website_code || p.office_code ? `<div class="ec-row"><span class="k">کد انبار / دفتر</span><span class="v">${p.website_code ? `<span class="code-pill">${esc(p.website_code)}</span>` : ""} ${p.office_code ? `<span class="code-pill" style="background:var(--accent-soft);color:var(--accent)">${esc(p.office_code)}</span>` : ""}</span></div>` : ""}
+        ${p.settled_at_fa ? `<div class="ec-row"><span class="k">تاریخ تسویه</span><span class="v" style="color:var(--green)">${p.settled_at_fa}</span></div>` : ""}
         <div style="height:7px;border-radius:99px;background:var(--gray-soft);overflow:hidden;margin-top:6px">
           <div style="height:100%;width:${pct}%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-strong));transition:width .3s ease"></div>
         </div>
@@ -242,6 +250,25 @@ function openPaymentModal(p = null) {
   $("#payment-product-search").value = "";
   $("#payment-product-hint").textContent = "";
   $("#payment-product-results").classList.add("hidden");
+
+  /* در ویرایش، انتخاب محصول از انبار فقط در ثبتِ جدید معنی دارد */
+  $("#payment-product-field").classList.toggle("hidden", !!p);
+  const info = $("#payment-product-info");
+  if (p && (p.product_image || p.reference || p.office_code || p.purchase_date_fa)) {
+    info.innerHTML = `
+      ${p.product_image
+        ? `<img class="thumb" style="width:52px;height:52px;border-radius:12px" src="/data/images/${encodeURIComponent(p.product_image)}" alt="">`
+        : `<span class="thumb" style="width:52px;height:52px;border-radius:12px"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="6.4"/><path d="M12 9.2V12l2.1 1.5"/></svg></span>`}
+      <div>
+        <div class="p-name">${esc(p.product_name)}</div>
+        <div class="p-ref">${p.reference ? `<span class="code-pill">${esc(p.reference)}</span> ` : ""}${p.website_code ? `<span class="code-pill">${esc(p.website_code)}</span> ` : ""}${p.office_code ? `<span class="code-pill" style="background:var(--accent-soft);color:var(--accent)">${esc(p.office_code)}</span>` : ""}</div>
+        <div class="li-sub">${p.purchase_price_display ? "خرید: " + p.purchase_price_display + " تومان — " : ""}${p.purchase_date_fa ? "تاریخ خرید: " + p.purchase_date_fa : ""}</div>
+      </div>`;
+    info.classList.remove("hidden");
+  } else {
+    info.classList.add("hidden");
+    info.innerHTML = "";
+  }
 
   form.querySelector('[name="product_name"]').value = p?.product_name || "";
   form.querySelector('[name="customer_name"]').value = p?.customer_name || "";

@@ -168,6 +168,7 @@ def sale_dict(r, product=None):
         "paid_pos": r.paid_pos,
         "paid_card2card": r.paid_card2card,
         "is_settled": 1 if r.is_settled else 0,
+        "settled_at": r.settled_at or "",
         "notes": r.notes,
         "created_at": str(r.created_at or ""),
         "product_name": p.name if p else "",
@@ -178,6 +179,7 @@ def sale_dict(r, product=None):
         "brand": p.brand if p else "",
         "supplier": p.supplier if p else "",
         "sale_date_fa": fa_date(r.sale_date),
+        "settled_at_fa": fa_date(r.settled_at) if r.settled_at else "",
         "sale_price_display": fa_money(r.sale_price),
         "final_price_display": fa_money(r.final_price),
         "profit_display": fa_money(r.profit),
@@ -199,7 +201,8 @@ def sale_dict(r, product=None):
 
 def payment_dict(r):
     remaining = max(0.0, (r.total_amount or 0) - (r.paid_amount or 0))
-    return {
+    p = getattr(r, "product", None)
+    d = {
         "id": r.id,
         "sale_id": r.sale_id,
         "product_id": r.product_id,
@@ -209,6 +212,7 @@ def payment_dict(r):
         "total_amount": r.total_amount,
         "paid_amount": r.paid_amount,
         "pay_date": r.pay_date,
+        "settled_at": r.settled_at or "",
         "notes": r.notes,
         "created_at": str(r.created_at or ""),
         "updated_at": str(r.updated_at or ""),
@@ -221,8 +225,19 @@ def payment_dict(r):
         "paid_amount_display": fa_money(r.paid_amount),
         "remaining_display": fa_money(remaining),
         "pay_date_fa": fa_date(r.pay_date),
+        "settled_at_fa": fa_date(r.settled_at) if r.settled_at else "",
         "customer_phone_fa": fa_num(r.customer_phone),
     }
+    if p:
+        d["product_image"] = p.image or ""
+        d["reference"] = p.reference or ""
+        d["website_code"] = p.website_code or ""
+        d["office_code"] = p.office_code or ""
+        d["purchase_price"] = p.purchase_price or 0
+        d["purchase_price_display"] = fa_money(p.purchase_price)
+        d["purchase_date"] = p.purchase_date or ""
+        d["purchase_date_fa"] = fa_date(p.purchase_date) if p.purchase_date else ""
+    return d
 
 
 def repair_dict(r):

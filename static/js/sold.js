@@ -200,6 +200,11 @@ function showSaleDetail(s) {
   add("نوع فروش", s.sale_type_fa);
   add("روش پرداخت", `<span class="badge ${pColor} plain">${pLabel}</span>`);
   if (s.paid_breakdown_fa) add("ریز پرداخت", s.paid_breakdown_fa);
+  if (s.payment_type === "deposit") {
+    add("وضعیت تسویه", s.is_settled
+      ? `<span class="badge green plain">تسویه شده${s.settled_at_fa ? " — " + s.settled_at_fa : ""}</span>`
+      : '<span class="badge amber plain">در انتظار تسویه</span>');
+  }
   add("خریدار", esc(s.customer));
   add("شماره تماس خریدار", s.customer_phone_fa);
   add("یادداشت", esc(s.notes));
