@@ -3,6 +3,19 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## 7f1a632 — 2026-09-07 (session IV, feature)
+**type:** feat
+**scope:** calendar
+**subject:** reference code shown on day-box items — رفرنس for buy/sell, watch_code for repairs
+
+- **User request:** «شماره رفرنس ساعت خریداری‌شده، فروخته‌شده و تعمیری هم نمایش داده شود.»
+- **Field reality:** purchases (`product_dict`) and sales (`sale_dict`, from linked product) have `reference`; Repair has NO reference column — its identifier is `watch_code` (user's own «کد ساعت» convention from the repair form), so repairs show that labeled «کد:».
+- **eventItem meta line now:** buy/sell → `رفرنس: <reference>` (empty if the product has none); rep_in/rep_out → `<customer> — کد: <watch_code>` (parts omitted when blank). Card stays otherwise minimal per 1115b6d.
+- **Verified:** node --check pass; isolated render test (buy «رفرنس: 2105», sell «رفرنس: R-99», rep «اسدی — کد: WC-12», all with image); live API real data: 2026-09-06 sales refs 3185 / LJ.160.21.721, repair «الکسا» code 2019 customer اسدی, 2026-09-01 purchase ref 0595. Server stopped. Committed `7f1a632`.
+
+---
+
+
 ## 1115b6d — 2026-09-07 (session IV, feature)
 **type:** feat
 **scope:** calendar
