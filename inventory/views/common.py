@@ -30,6 +30,7 @@ def page_ctx(request, active):
     """متغیرهای پایه‌ی base.html — همان context_processor نسخه‌ی Flask."""
     ctx = {
         "site_icon": get_setting("site_icon", ""),
+        "store_name": get_setting("store_name", "") or "TikoTime",
         "active": active,
     }
     if active:
