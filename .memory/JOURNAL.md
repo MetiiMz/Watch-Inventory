@@ -3,6 +3,21 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## 7551e14 — 2026-09-07 (session IV, feature)
+**type:** feat
+**scope:** sales (inventory sell modal)
+**subject:** optional manual invoice-code input — user enters their own value, auto TT-code only when left empty
+
+- **User request:** «در بخش فروش صفحه انبار، زیر فیلد نوع فروش یک فیلد اختیاری کد فاکتور اضافه کن تا خودم مقدارش را وارد کنم — نه مقدار پیش‌فرض تو.»
+- **Why a migration was needed:** `invoice_code` was NOT a DB column — it was computed on the fly in `sale_dict` as `invoice_code(r.id, r.sale_date)` → `TT-<jy><jm>-<sale_id:04d>` (utils.py:141). To store a manual value, added `Sale.invoice_code` CharField(40, blank) — migration `0006_sale_invoice_code` (applied).
+- **Changes:** models.py (field) · utils.py `sale_dict`: `r.invoice_code or invoice_code(...)` (single display point — sold list, detail modal, calendar all follow) · sales.py `_create`: accepts `invoice_code` payload key, `clean()`ed, ≤40 chars, **duplicate rejected** with Persian error, passed to `Sale.objects.create` · products.html: new optional field «کد فاکتور (اختیاری)» right below «نوع فروش», dir=ltr, maxlength=40, with `#invoice-code-hint` moved under it and reworded to «اگر خالی بگذارید، خودکار صادر می‌شود: TT-…» · products.js: `invoice_code` added to sell payload; `form.reset()` on modal open clears it (line 295 path).
+- **Bonus fix found while testing:** `/api/sales?q=` search did NOT cover invoice_code — `q=MY-CODE` returned nothing. Added `Q(invoice_code__icontains=q)` to the search filter in `api_sales`.
+- **Verified live (runserver):** POST with `invoice_code=MY-CODE-77` → stored + echoed in `sale.invoice_code`; duplicate POST → `{"ok":false, "error":"کد فاکتور «MY-CODE-77» قبلاً استفاده شده است"}`; POST with empty code → auto `TT-140506-0014`; search `q=MY-CODE` finds it after the Q-fix; field renders on `/products` (grep count 1). Test sales 13/14 deleted afterward — DB back to 4 original sales, both test products re-available. `check` clean, migration applied, `node --check` pass. Server stopped. Committed `7551e14`.
+- **Note:** edit flow (sold.js PUT) does not expose invoice_code — out of scope of the request; the manual code is fixed at creation for now.
+
+---
+
+
 ## 6e8cce4 — 2026-09-07 (session IV, hotfix)
 **type:** fix
 **scope:** sales (sold page)
