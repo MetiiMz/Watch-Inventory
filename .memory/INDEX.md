@@ -22,7 +22,7 @@
 | `inventory/reports.py` | dashboard stats via ORM aggregates | done |
 | `inventory/jalali.py` | Jalali conversion (unchanged port) | done |
 | `inventory/views/` | products, sales, payments, repairs, tracking, calendar, pages, shared (brands/upload/images), backups, exportimport, settings_api, common | done |
-| `inventory/migrations/` | Django migrations (0001_initial; 0002 +0003 = quantity add/remove history) | done |
+| `inventory/migrations/` | Django migrations (0001_initial; 0002 +0003 = quantity add/remove history; 0004 = Sale/Payment `settled_at`; 0005 = seed store_name «Tick O Time») | done |
 | `inventory/excel_io.py` | Excel/CSV import-export via openpyxl (Persian headers) | done |
 | `README.md` | Persian run/usage guide (rewritten 2026-09-06) | done |
 | `legacy_flask/` | frozen Flask reference implementation | read-only |
@@ -50,9 +50,11 @@
   ```
 - Every meaningful action on this project gets a new entry appended (newest at top).
 
-## Known schema facts (2026-09-03)
+## Known schema facts (2026-09-03; updated session IV 2026-09-07)
 
 - `sales.sale_date`, `payments.pay_date`, `products.purchase_date` are stored as **ISO Gregorian** (`YYYY-MM-DD`); the UI sends raw Jalali (`۱۴۰۵/۰۶/۱۲`) and the backend converts via `parse_jalali_date`. Never store raw Jalali strings.
+- **Session IV additions:** `sales.settled_at` + `payments.settled_at` (datetime, migration 0004) — set when a deposit payment is added/settled/edited, shown in the sale detail modal; `sales.invoice_code` format TT-YYYYMM-NNNN (`utils.invoice_code`); buyer name + phone are required on sale create/update (API-validated); `settings` row `store_name` defaults to «Tick O Time» (migration 0005; `page_ctx` fallback for every page's title/sidebar brand); site icon lives in `settings.site_icon` and is rendered in favicon + sidebar.
+- **Shared JS:** `static/js/jalali-datepicker.js` (popup Jalali calendar, attach via `data-datepicker`) and `bindMoneyInput`/`moneyIn` in `static/js/app.js` (live thousands-separator) are the shared helpers — reuse them for any new date/price input.
 - `products`/`sales` were rebuilt (2026-09-03) with true `INTEGER PRIMARY KEY` + FK `ON DELETE CASCADE`; `database.py::_migrate_inner` auto-repairs legacy `id INT` tables on every `init_db()` — keep that repair idempotent when adding migrations.
 - Deleting a **product** cascades its **sales** (which then vanish from the Calendar); deleting a **sale** restores the product to available and cascade-removes its deposit receipt.
 - The Calendar (`/api/calendar`, `/api/calendar/day`) live-queries `sales` — no separate event store. `static/js/calendar.js` re-fetches on bfcache `pageshow` and tab `visibilitychange`.
