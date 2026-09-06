@@ -100,7 +100,10 @@ function eventItem(e, kind) {
 
   const payload = esc(JSON.stringify({ kind, id: e.id }));
   const name = e.name || e.product_name || e.watch_name || "";
-  const sub = (kind === "rep_in" || kind === "rep_out") ? (e.customer_name || e.customer || "") : "";
+  const isRep = kind === "rep_in" || kind === "rep_out";
+  const sub = isRep
+    ? [e.customer_name || e.customer || "", e.watch_code ? "کد: " + e.watch_code : ""].filter(Boolean).join(" — ")
+    : (e.reference ? "رفرنس: " + e.reference : "");
 
   return `
     <button type="button" class="event-item ev-click" data-payload="${payload}" style="width:100%;text-align:right;border:1px solid var(--hairline);cursor:pointer;font-family:inherit">
