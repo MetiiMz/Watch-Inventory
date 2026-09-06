@@ -3,12 +3,23 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## 3984de6 — 2026-09-07 (session IV, correction)
+**type:** fix
+**scope:** dashboard
+**subject:** 12-month chart corrected per user: THREE lines (purchases, sales, profit) — not profit-only
+
+- **User clarification:** «در نمودار ۱۲ماه، خرید، فروش و سود فروش — یک نمودار با سه خط که مشخص باشد هر ماه چه خریدی، چه فروشی و چه سودی داشتم.» The earlier task_0001 interpretation (profit-only green line, commit `277eacf`) was wrong.
+- **Fix (templates/dashboard.html only — `reports.get_monthly_activity` already returned `revenue`/`purchase_value`/`profit` per month, no backend change):** card retitled «فعالیت ۱۲ ماه اخیر — خرید، فروش و سود» with a 3-item legend (فروش `--accent` آبی / خرید `--amber` کهربایی / سود `--green` سبز — all theme-aware vars); Y-scale now maxes over all three series; three paths drawn back-to-front (purchases w2.2 → sales w2.6 → profit w2.8, subtle green area under profit kept); dots per series per month; tooltip now lists فروش/خرید/سود فروش (+تعداد فروش) per month with matching colors; empty-state text mentions خرید یا فروش.
+- **Verified:** `manage.py check` clean; live curl of /dashboard shows 3-item legend + new title + monthly JSON with `revenue`/`purchase_value` keys; inline chart JS extracted and `node --check` pass; server stopped. Committed `3984de6`.
+
+---
+
 ## f985c66 — 2026-09-07 (session IV, completed)
 **type:** feat
 **scope:** multi-page-features
 **subject:** All 22 items of the session-IV request done, verified live, committed per feature
 
-- **Commits (in order):** `277eacf` dashboard (profit-only green chart, brand sales value, out-of-stock images) · `7a4ed12` inventory/sale modal (shared Jalali popup datepicker `static/js/jalali-datepicker.js`, final-price required + thousands-sep, buyer name+phone required, invoice code TT-YYYYMM-NNNN via `utils.invoice_code`) · `841dd1d` calendar (images + full detail modals, day-panel price fix) · `daaf190` sales (sold-list subtitle, invoice in detail, sale-date edit syncs linked Payment.pay_date) · `28ea0fb` repairs/tracking (shared `bindMoneyInput`/`moneyIn` moved to app.js) · `8efd352` payments (product image + full details on cards/edit, settlement date: new `settled_at` on Sale+Payment, migration `0004_sale_payment_settled_at`, inventory picker hidden when editing) · `170e266` settings (store name drives sidebar brand + tab title on every page, live update on save) · `f985c66` settings (default name = «Tick O Time», migration `0005_store_name_default` seeds the Setting row).
+- **Commits (in order):** `277eacf` dashboard (chart initially profit-only — corrected to 3 lines خرید/فروش/سود in `3984de6`; brand sales value, out-of-stock images) · `7a4ed12` inventory/sale modal (shared Jalali popup datepicker `static/js/jalali-datepicker.js`, final-price required + thousands-sep, buyer name+phone required, invoice code TT-YYYYMM-NNNN via `utils.invoice_code`) · `841dd1d` calendar (images + full detail modals, day-panel price fix) · `daaf190` sales (sold-list subtitle, invoice in detail, sale-date edit syncs linked Payment.pay_date) · `28ea0fb` repairs/tracking (shared `bindMoneyInput`/`moneyIn` moved to app.js) · `8efd352` payments (product image + full details on cards/edit, settlement date: new `settled_at` on Sale+Payment, migration `0004_sale_payment_settled_at`, inventory picker hidden when editing) · `170e266` settings (store name drives sidebar brand + tab title on every page, live update on save) · `f985c66` settings (default name = «Tick O Time», migration `0005_store_name_default` seeds the Setting row).
 - **Settings item ㉑ note:** site-icon file upload already existed and persists (`/api/settings/site-icon` → `Setting.key=site_icon`, rendered in favicon + sidebar brand mark by `page_ctx.site_icon`).
 - **Final verification (task_0009):** `manage.py check` clean · `makemigrations --check` in sync (0001–0005 applied) · `node --check` pass on all 9 files in `static/js/` · live curl: all 8 pages 200, `/api/products`, `/api/calendar/day`, `/api/payments`, `/api/settings` return data; store name «Tick O Time» renders in `<title>` and `.brand-name`.
 - **Serializer gotcha to remember:** when adding keys, keep legacy ones too (see session II) — this session followed it (payment_dict extended, nothing dropped).
