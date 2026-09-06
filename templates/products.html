@@ -189,7 +189,7 @@
           </div>
           <div class="field">
             <label>تاریخ خرید (شمسی)</label>
-            <input class="input" name="purchase_date" placeholder="۱۴۰۳/۰۵/۱۲ — اختیاری" inputmode="numeric">
+            <input class="input" name="purchase_date" data-datepicker placeholder="انتخاب تاریخ (شمسی) — اختیاری">
             <span class="hint">اگر نمی‌دانید، خالی بگذارید</span>
           </div>
           <div class="field span-2">
@@ -224,8 +224,13 @@
         <div class="prod-cell mb-14" id="sale-prod-cell"></div>
         <div class="form-grid" style="grid-template-columns:1fr">
           <div class="field">
-            <label>قیمت فروش (تومان)</label>
-            <input class="input" name="sale_price" inputmode="numeric">
+            <label>قیمت فروش ساعت (تومان) — ثابت</label>
+            <input class="input" name="sale_price" inputmode="numeric" readonly title="قیمت فروش از انبار — برای تغییر، ابتدا در انبار ویرایش کنید">
+          </div>
+          <div class="field">
+            <label>قیمت نهایی فروش (تومان) *</label>
+            <input class="input" name="discount_price" inputmode="numeric" required placeholder="قیمت نهایی با تخفیف را وارد کنید">
+            <span class="hint" id="discount-hint"></span>
           </div>
           <div class="field">
             <label>نوع پرداخت</label>
@@ -235,9 +240,9 @@
             </div>
             <span class="hint" id="pay-basis-hint">فروش کامل — تسویه‌شده ثبت می‌شود</span>
 
-            <!-- ریز پرداخت: نقدی / کارت‌خوان / کارت به کارت (اختیاری) -->
+            <!-- ریز پرداخت: نقدی / کارت‌خوان / کارت به کارت (اختیاری — صرفاً جهت اطلاعات) -->
             <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--hairline)">
-              <label>روش‌های پرداخت و مبالغ (اختیاری)</label>
+              <label>روش‌های پرداخت و مبالغ (اختیاری — صرفاً جهت اطلاعات)</label>
               <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px">
                 <input class="input" name="paid_cash" inputmode="numeric" placeholder="نقدی">
                 <input class="input" name="paid_pos" inputmode="numeric" placeholder="کارت‌خوان (POS)">
@@ -247,29 +252,22 @@
             </div>
           </div>
 
-          <!-- فیلدهای شرطی: نقدی -->
-          <div class="field hidden" id="cash-fields">
-            <label>قیمت نهایی با تخفیف (تومان) — اختیاری</label>
-            <input class="input" name="discount_price" inputmode="numeric" placeholder="اگر تخفیف داده‌اید، قیمت نهایی را وارد کنید">
-            <span class="hint" id="discount-hint"></span>
-          </div>
-
-          <!-- فیلدهای شرطی: بیعانه -->
+          <!-- فیلد شرطی بیعانه -->
           <div class="field hidden" id="deposit-fields">
-            <span class="hint">مبلغ بیعانه را در روش‌های پرداختِ بالا وارد کنید — مانده به‌صورت خودکار در صفحه‌ی «پرداخت‌ها» ثبت و پیگیری می‌شود</span>
+            <span class="hint">مانده از قیمت نهایی، به‌صورت خودکار در صفحه‌ی «پرداخت‌ها» ثبت و پیگیری می‌شود</span>
           </div>
 
           <div class="field">
             <label>تاریخ فروش (شمسی)</label>
-            <input class="input" name="sale_date" data-jalali-today placeholder="۱۴۰۳/۰۵/۱۲" inputmode="numeric">
+            <input class="input" name="sale_date" data-datepicker data-jalali-today placeholder="انتخاب تاریخ">
           </div>
           <div class="field">
-            <label>نام خریدار</label>
-            <input class="input" name="customer" placeholder="اختیاری">
+            <label>نام خریدار *</label>
+            <input class="input" name="customer" required placeholder="نام و نام خانوادگی خریدار">
           </div>
           <div class="field">
-            <label>شماره تماس خریدار</label>
-            <input class="input" name="customer_phone" placeholder="۰۹۱۲۳۴۵۶۷۸۹ — اختیاری" inputmode="tel" dir="ltr" style="text-align:right">
+            <label>شماره تماس خریدار *</label>
+            <input class="input" name="customer_phone" required placeholder="۰۹۱۲۳۴۵۶۷۸۹" inputmode="tel" dir="ltr" style="text-align:right">
           </div>
           <div class="field">
             <label>نوع فروش</label>
@@ -277,6 +275,7 @@
               <option value="person">حضوری</option>
               <option value="online">آنلاین</option>
             </select>
+            <span class="hint" id="invoice-code-hint"></span>
           </div>
           <div class="field">
             <label>یادداشت</label>

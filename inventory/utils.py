@@ -137,6 +137,19 @@ def parse_date_or_none(text):
     return parse_jalali_date(clean(text))
 
 
+# ---------------------------------------------------------------- invoice
+def invoice_code(sale_id, sale_date):
+    """کد فاکتور نمایشی و پایدار: TT-<سال/ماه شمسی>-<شناسه فروش>."""
+    if not sale_id:
+        return ""
+    try:
+        y, m, d = (int(x) for x in str(sale_date)[:10].split("-"))
+        jy, jm, _jd = gregorian_to_jalali(y, m, d)
+        return f"TT-{jy}{jm:02d}-{sale_id:04d}"
+    except (ValueError, TypeError):
+        return f"TT-{sale_id:04d}"
+
+
 def sale_dict(r, product=None):
     p = product or getattr(r, "product", None)
     d = {
@@ -180,6 +193,7 @@ def sale_dict(r, product=None):
         f"کارت به کارت {fa_money(d['paid_card2card'])}" if d["paid_card2card"] else "",
     ]))
     d["purchase_price_display"] = fa_money(r.purchase_price)
+    d["invoice_code"] = invoice_code(r.id, r.sale_date)
     return d
 
 

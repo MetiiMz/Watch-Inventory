@@ -16,8 +16,8 @@ from django.views.decorators.http import require_POST
 from inventory.jalali import parse_jalali_date, today_iso
 from inventory.models import Payment, Product, Sale
 from inventory.utils import (
-    SALE_TYPE_FA, clean, fa_money, sale_dict, to_en_digits, to_en_phone,
-    to_float, to_int,
+    SALE_TYPE_FA, clean, fa_money, invoice_code, sale_dict, to_en_digits,
+    to_en_phone, to_float, to_int,
 )
 
 from .common import fail, get_payload, ok
@@ -39,10 +39,25 @@ def _order(sort, direction):
     return ["-" + col if desc else col]
 
 
+def _validate_buyer(customer, customer_phone):
+    """نام و شماره‌ی خریدار الزامی است — خروجی: (پیام خطا یا None)."""
+    if not customer:
+        return "نام خریدار الزامی است"
+    phone_digits = customer_phone.replace("+", "").replace(" ", "")
+    if not phone_digits.isdigit() or not (10 <= len(phone_digits) <= 13):
+        return "شماره تماس خریدار معتبر نیست (مثال: 09123456789)"
+    return None
+
+
 def api_sales(request):
     """GET: فهرست فروش‌ها + خلاصه — POST: ثبت فروش (نقدی یا بیعانه)."""
     if request.method == "POST":
         return _create(request)
+
+    # پیش‌نمایش کد فاکتور برای مودال ثبت فروش
+    if request.GET.get("next_code"):
+        last_id = Sale.objects.order_by("-id").values_list("id", flat=True).first() or 0
+        return JsonResponse({"next_invoice_code": invoice_code(last_id + 1, today_iso())})
 
     q = to_en_digits(request.GET.get("q", "").strip())
     sale_type = request.GET.get("sale_type", "").strip()
@@ -120,6 +135,9 @@ def _create(request):
         sale_type = "person"
     customer_phone = to_en_phone(clean(payload.get("customer_phone")))
     customer = clean(payload.get("customer"))
+    err = _validate_buyer(customer, customer_phone)
+    if err:
+        return fail(err)
 
     if payment_kind == "deposit":
         if paid_now <= 0:
@@ -213,12 +231,18 @@ def _update(request, s):
     if sale_type not in SALE_TYPE_FA:
         sale_type = "person"
 
+    customer = clean(payload.get("customer"))
+    customer_phone = to_en_phone(clean(payload.get("customer_phone")))
+    err = _validate_buyer(customer, customer_phone)
+    if err:
+        return fail(err)
+
     s.sale_price = sale_price
     s.final_price = final_price
     s.profit = profit
     s.sale_date = parsed
-    s.customer = clean(payload.get("customer"))
-    s.customer_phone = to_en_phone(clean(payload.get("customer_phone")))
+    s.customer = customer
+    s.customer_phone = customer_phone
     s.sale_type = sale_type
     s.payment_type = payment_kind
     s.paid_cash = paid_cash

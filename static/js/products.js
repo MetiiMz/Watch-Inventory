@@ -322,7 +322,9 @@ function openSaleModal(p) {
   $$("#sale-payment-chips .chip").forEach((c) =>
     c.classList.toggle("active", c.dataset.pay === "cash"));
   $("#pay-basis-hint").textContent = "فروش کامل — تسویه‌شده ثبت می‌شود";
+  $("#invoice-code-hint").textContent = "";
   updateSalePaymentFields();
+  fetchInvoiceCode();
   openModal("modal-sale");
 }
 
@@ -330,9 +332,18 @@ function openSaleModal(p) {
 function updateSalePaymentFields() {
   const form = $("#sale-form");
   const type = form.querySelector('[name="payment_type"]').value;
-  $("#cash-fields").classList.toggle("hidden", type === "deposit");
   $("#deposit-fields").classList.toggle("hidden", type !== "deposit");
   updateSaleHints();
+}
+
+/* پیش‌نمایش کد فاکتور زیر فیلد نوع فروش */
+async function fetchInvoiceCode() {
+  const hint = $("#invoice-code-hint");
+  if (!hint) return;
+  try {
+    const res = await api("/api/sales?next_code=1");
+    hint.textContent = res.next_invoice_code ? `کد فاکتور: ${res.next_invoice_code}` : "";
+  } catch { /* پیش‌نمایش کد فاکتور بحرانی نیست */ }
 }
 
 function parseMoneyInput(el) {
@@ -393,6 +404,7 @@ $("#sale-form").addEventListener("input", (e) => {
 
 $("#btn-save-sale").addEventListener("click", async () => {
   const form = $("#sale-form");
+  if (!form.reportValidity()) return;
   const paymentType = form.querySelector('[name="payment_type"]').value;
   const paidCash = parseMoneyInput(form.querySelector('[name="paid_cash"]'));
   const paidPos = parseMoneyInput(form.querySelector('[name="paid_pos"]'));
@@ -419,10 +431,11 @@ $("#btn-save-sale").addEventListener("click", async () => {
   const btn = $("#btn-save-sale");
   btn.disabled = true;
   try {
-    await api("/api/sales", { method: "POST", body: payload });
-    toast(payload.payment_type === "deposit"
+    const res = await api("/api/sales", { method: "POST", body: payload });
+    const code = res?.sale?.invoice_code || "";
+    toast((payload.payment_type === "deposit"
       ? "فروش بیعانه ثبت شد — مانده در «پرداخت‌ها» ثبت شد"
-      : "فروش ثبت شد و ساعت ناموجود شد");
+      : "فروش ثبت شد و ساعت ناموجود شد") + (code ? ` — کد فاکتور: ${code}` : ""));
     closeModal("modal-sale");
     loadProducts();
   } catch (err) {
@@ -559,7 +572,10 @@ $("#btn-run-import").addEventListener("click", async () => {
 /* ------------------------------------------------ شروع */
 
 document.addEventListener("DOMContentLoaded", () => {
-  $$("#product-form [name='purchase_price'], #product-form [name='sale_price'], #sale-form [name='sale_price']")
+  $$("#product-form [name='purchase_price'], #product-form [name='sale_price'], "
+    + "#sale-form [name='sale_price'], #sale-form [name='discount_price'], "
+    + "#sale-form [name='paid_cash'], #sale-form [name='paid_pos'], "
+    + "#sale-form [name='paid_card2card']")
     .forEach(bindMoneyInput);
   loadBrandFilter();
   loadProducts();
