@@ -92,29 +92,26 @@ async function selectDay(iso, btn) {
 
 function eventItem(e, kind) {
   const cfg = {
-    buy:    { color: "blue",  tag: "خرید",  price: e.total_value_display || e.price_display || "" },
-    sell:   { color: "green", tag: "فروش",  price: e.final_price_display || e.price_display || "" },
-    rep_in: { color: "amber", tag: "دریافت برای تعمیر", price: e.repair_price_display || "" },
-    rep_out:{ color: "gray",  tag: "بازگشت به مشتری",   price: e.repair_price_display || "" },
+    buy:    { color: "blue",  tag: "خرید",  price: e.purchase_price_display || e.total_value_display || e.price_display || "" },
+    sell:   { color: "green", tag: "فروش",  price: e.final_price_display || e.sale_price_display || e.price_display || "" },
+    rep_in: { color: "amber", tag: "دریافت برای تعمیر", price: "" },
+    rep_out:{ color: "gray",  tag: "بازگشت به مشتری",   price: "" },
   }[kind];
 
   const payload = esc(JSON.stringify({ kind, id: e.id }));
-  const sub = kind === "buy"
-    ? `${e.supplier ? "تأمین: " + esc(e.supplier) : ""}`
-    : kind === "sell"
-      ? `${e.sale_type_fa === "آنلاین" ? "آنلاین" : "حضوری"}${e.customer ? " — خریدار: " + esc(e.customer) : ""}${e.customer_phone_fa ? " — " + e.customer_phone_fa : ""}`
-      : `${e.code ? "کد " + esc(e.code) : ""}${e.customer ? " — " + esc(e.customer) : ""}`;
+  const name = e.name || e.product_name || e.watch_name || "";
+  const sub = (kind === "rep_in" || kind === "rep_out") ? (e.customer_name || e.customer || "") : "";
 
   return `
     <button type="button" class="event-item ev-click" data-payload="${payload}" style="width:100%;text-align:right;border:1px solid var(--hairline);cursor:pointer;font-family:inherit">
-      ${e.image
-        ? `<img class="thumb" style="width:38px;height:38px;border-radius:10px" src="/data/images/${encodeURIComponent(e.image)}" alt="">`
+      ${(e.image || e.product_image)
+        ? `<img class="thumb" style="width:38px;height:38px;border-radius:10px" src="/data/images/${encodeURIComponent(e.image || e.product_image)}" alt="">`
         : `<span class="thumb" style="width:38px;height:38px;border-radius:10px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="6.4"/><path d="M12 9.2V12l2.1 1.5"/></svg></span>`}
       <div class="li-main">
-        <div class="e-name">${esc(e.name)}</div>
-        <div class="e-meta">${sub}</div>
+        <div class="e-name">${esc(name)}</div>
+        ${sub ? `<div class="e-meta">${esc(sub)}</div>` : ""}
       </div>
-      <div class="e-price ${cfg.color === "gray" ? "" : cfg.color}">${cfg.price}</div>
+      ${cfg.price ? `<div class="e-price ${cfg.color === "gray" ? "" : cfg.color}">${cfg.price}</div>` : ""}
     </button>`;
 }
 
@@ -224,21 +221,19 @@ function renderDayPanel(day) {
   let html = "";
 
   if (pc) {
-    const buyTotal = day.purchases.reduce((s, p) => s + (p.total_value || 0), 0);
+    const buyTotal = day.purchases.reduce((s, p) => s + (Number(p.purchase_price) || Number(p.total_value) || 0), 0);
     html += `<div class="event-group">
       <div class="event-group-title"><span class="g-dot" style="background:var(--accent)"></span>خریدها (${faNum(pc)})</div>
       ${day.purchases.map((p) => eventItem(p, "buy")).join("")}
-      <div class="kv mt-8"><span class="k">جمع ارزش خرید روز</span><span class="v">${faMoney(buyTotal)} تومان</span></div>
+      <div class="kv mt-8"><span class="k">جمع مبلغ خرید</span><span class="v" style="color:var(--accent)">${faMoney(buyTotal)} تومان</span></div>
     </div>`;
   }
   if (sc) {
     const sellTotal = day.sales.reduce((s, x) => s + (Number(x.final_price) || Number(x.sale_price) || 0), 0);
-    const profitTotal = day.sales.reduce((s, x) => s + (Number(x.profit) || 0), 0);
     html += `<div class="event-group">
       <div class="event-group-title"><span class="g-dot" style="background:var(--green)"></span>فروش‌ها (${faNum(sc)})</div>
       ${day.sales.map((x) => eventItem(x, "sell")).join("")}
-      <div class="kv mt-8"><span class="k">جمع فروش روز</span><span class="v">${faMoney(sellTotal)} تومان</span></div>
-      <div class="kv"><span class="k">جمع سود روز</span><span class="v" style="color:var(--green)">${faMoney(profitTotal)} تومان</span></div>
+      <div class="kv mt-8"><span class="k">جمع مبلغ فروش</span><span class="v" style="color:var(--green)">${faMoney(sellTotal)} تومان</span></div>
     </div>`;
   }
   if (ric) {
