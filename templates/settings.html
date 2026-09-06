@@ -41,14 +41,16 @@
   <div class="stack">
     <section class="glass card">
       <div class="card-title"><h3>آیکون سایت</h3></div>
-      <div class="img-upload">
-        <img class="img-preview placeholder" id="icon-preview" alt="">
+      <!-- data-manual: هندلر اختصاصی آیکون در همین صفحه، اتصال خودکار app.js لازم ندارد -->
+      <div class="img-upload" data-manual>
+        <img class="img-preview placeholder" id="icon-preview" alt="" title="برای انتخاب آیکون کلیک کنید" style="cursor:pointer">
         <div class="img-upload-actions grow">
           <div class="row" style="gap:8px">
             <button class="btn btn-sm" id="btn-pick-icon" type="button">انتخاب آیکون</button>
             <button class="btn btn-sm btn-danger hidden" id="btn-remove-icon" type="button">حذف آیکون</button>
           </div>
-          <span class="iu-hint">png یا svg — در تب مرورگر و منوی کنار نشان داده می‌شود</span>
+          <span class="iu-hint" id="icon-name"></span>
+          <span class="iu-hint">png / svg / ico / jpg / webp تا ۲ مگابایت — با انتخاب فایل، آیکون بلافاصله ذخیره و اعمال می‌شود (نیازی به دکمه‌ی ذخیره یا اعمال نیست)</span>
         </div>
         <input type="file" id="icon-file" accept=".png,.svg,.ico,.jpg,.jpeg,.webp" class="hidden">
         <input type="hidden" id="icon-path" value="">
@@ -157,35 +159,46 @@ function renderIconPreview() {
   const path = $("#icon-path").value;
   const img = $("#icon-preview");
   if (path) {
-    img.src = "/data/images/" + encodeURIComponent(path);
+    img.src = "/data/images/" + encodeURIComponent(path) + "?v=" + Date.now();
     img.classList.remove("placeholder");
     $("#btn-remove-icon").classList.remove("hidden");
   } else {
-    img.removeAttribute("src");
+    img.src = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="%23999" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m5 19 5.2-5.4a1.6 1.6 0 0 1 2.3 0L19 19"/></svg>');
     img.classList.add("placeholder");
-    img.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m5 19 5.2-5.4a1.6 1.6 0 0 1 2.3 0L19 19"/></svg>';
     $("#btn-remove-icon").classList.add("hidden");
   }
 }
 
+$("#icon-preview").addEventListener("click", () => $("#icon-file").click());
 $("#btn-pick-icon").addEventListener("click", () => $("#icon-file").click());
 
 $("#icon-file").addEventListener("change", async () => {
   const file = $("#icon-file").files[0];
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { toast("حجم آیکون باید کمتر از ۲ مگابایت باشد", "error"); return; }
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("kind", "icon");
+  if (file.size > 2 * 1024 * 1024) { toast("حجم آیکون باید کمتر از ۲ مگابایت باشد", "error"); $("#icon-file").value = ""; return; }
+  const btn = $("#btn-pick-icon");
+  const iconName = $("#icon-name");
+  btn.disabled = true;
+  if (iconName) iconName.textContent = file.name + " — در حال ذخیره…";
   try {
-    const res = await api("/api/upload", { method: "POST", body: fd });
+    /* فایل به‌صورت base64 داخل JSON ارسال می‌شود — همان مسیر پایدار بقیه‌ی APIها */
+    const dataUrl = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(new Error("خواندن فایل ناموفق بود"));
+      r.readAsDataURL(file);
+    });
+    const res = await api("/api/upload", { method: "POST", body: { kind: "icon", name: file.name, data: dataUrl } });
     await api("/api/settings/site-icon", { method: "POST", body: { icon: res.path } });
     $("#icon-path").value = res.path;
     renderIconPreview();
-    toast("آیکون سایت تغییر کرد — با رفرش صفحه در تب مرورگر هم دیده می‌شود");
+    if (iconName) iconName.textContent = file.name;
+    toast("آیکون «" + file.name + "» ذخیره شد — همین حالا اعمال شد ✓");
   } catch (err) {
-    toast(err.message, "error");
+    if (iconName) iconName.textContent = "";
+    toast("ذخیره‌ی آیکون ناموفق بود: " + err.message, "error");
   } finally {
+    btn.disabled = false;
     $("#icon-file").value = "";
   }
 });
@@ -195,6 +208,8 @@ $("#btn-remove-icon").addEventListener("click", async () => {
     await api("/api/settings/site-icon", { method: "POST", body: { icon: "" } });
     $("#icon-path").value = "";
     renderIconPreview();
+    const iconName = $("#icon-name");
+    if (iconName) iconName.textContent = "";
     toast("آیکون حذف شد");
   } catch (err) {
     toast(err.message, "error");

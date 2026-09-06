@@ -237,9 +237,10 @@ function setupImageUpload(wrapEl) {
   render();
 }
 
-$$(".img-upload").forEach(setupImageUpload);
+/* .img-upload با data-manual از اتصال خودکار مستثناست (مثل آیکون سایت که هندلر اختصاصی دارد) */
+$$(".img-upload:not([data-manual])").forEach(setupImageUpload);
 document.addEventListener("modal:opened", (e) => {
-  $$(".img-upload:not([data-ready])", e.detail?.root || document).forEach((el) => {
+  $$(".img-upload:not([data-manual]):not([data-ready])", e.detail?.root || document).forEach((el) => {
     el.dataset.ready = "1";
     setupImageUpload(el);
   });
