@@ -261,6 +261,21 @@ async function fillBrandDatalist(selectEl) {
 
 /* ------------------------------------------------ تاریخ پیش‌فرض فرم‌ها */
 
+/* ------------------------------------------------ ورودی‌های مبلغ با جداکننده‌ی هزارگان
+   در تایپ زنده سه‌رقمی جدا می‌شود؛ هنگام ارسال فرم فقط ارقام انگلیسی می‌ماند. */
+
+function moneyIn(value) {
+  return value ? faNum(Number(value).toLocaleString("en-US")).replace(/,/g, "٬") : "";
+}
+
+function bindMoneyInput(input) {
+  input.addEventListener("input", () => {
+    const digits = toEnDigits(input.value).replace(/[^\d]/g, "");
+    input.value = digits ? faNum(Number(digits).toLocaleString("en-US")).replace(/,/g, "٬") : "";
+    input.dispatchEvent(new Event("moneychange"));
+  });
+}
+
 function todayJalaliStr() {
   const n = new Date();
   if (!window.JalaliJS) return "";

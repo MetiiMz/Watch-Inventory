@@ -292,4 +292,7 @@ $("#btn-export").addEventListener("click", () => {
   a.remove();
 });
 
-document.addEventListener("DOMContentLoaded", loadRepairs);
+document.addEventListener("DOMContentLoaded", () => {
+  bindMoneyInput(document.querySelector('#repair-form [name="repair_price"]'));
+  loadRepairs();
+});

@@ -270,4 +270,7 @@ $("#btn-export").addEventListener("click", () => {
   a.remove();
 });
 
-document.addEventListener("DOMContentLoaded", loadTracking);
+document.addEventListener("DOMContentLoaded", () => {
+  bindMoneyInput(document.querySelector('#tracking-form [name="price"]'));
+  loadTracking();
+});

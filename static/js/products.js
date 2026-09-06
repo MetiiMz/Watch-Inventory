@@ -203,18 +203,6 @@ function downloadCsv(list, name) {
 
 /* ------------------------------------------------ فرم محصول */
 
-function moneyIn(value) {
-  return value ? faNum(Number(value).toLocaleString("en-US")).replace(/,/g, "٬") : "";
-}
-
-function bindMoneyInput(input) {
-  input.addEventListener("input", () => {
-    const digits = toEnDigits(input.value).replace(/[^\d]/g, "");
-    input.value = digits ? faNum(Number(digits).toLocaleString("en-US")).replace(/,/g, "٬") : "";
-    input.dispatchEvent(new Event("moneychange"));
-  });
-}
-
 function formToPayload(form) {
   const fd = new FormData(form);
   const o = {};
