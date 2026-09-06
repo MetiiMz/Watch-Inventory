@@ -3,6 +3,20 @@
 > Persistent log of every shell command executed on this project (user request, 2026-09-03).
 > Newest first. Grouped by task. Paths abbreviated as `<root>` = `/media/MyShit/Works/Tick O Time/DB/Watch Inventory`.
 
+## 2026-09-06 — Git initialized, initial commit (session IV)
+```bash
+git init -b main                                   # .git created (root-owned dir → dubious-ownership fix below)
+git config --global --add safe.directory '/media/MyShit/Works/Tick O Time/DB/Watch Inventory'
+git config user.name 'meti' ; git config user.email 'meti@local'   # local identity (none existed)
+# .gitignore created: __pycache__ *.pyc .venv staticfiles data/ .codebase-memory
+git add -A && git status --short | wc -l           # 71 staged, 0 from data/
+git commit -m 'Initial commit: TikoTime watch-inventory app (Django port complete & verified)'
+git log --oneline                                  # 776891f (root-commit), 71 files, 12658 insertions
+# rule: one commit per completed task (user request)
+```
+
+---
+
 ## 2026-09-06 — Session IV started: 22-item multi-page feature request (context gathering)
 ```bash
 # codebase-memory full re-index (end of session III): 963 nodes / 4,346 edges, 0 skipped,

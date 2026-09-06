@@ -3,6 +3,19 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## c4e8a12 — 2026-09-06 (session IV)
+**type:** chore
+**scope:** git
+**subject:** Git repository initialized — every completed task gets a commit from now on
+
+- **Repo:** `git init -b main` + local identity (`meti <meti@local>`) + global `safe.directory` exception (repo dir owned by root → "dubious ownership" error otherwise).
+- **`.gitignore` (new):** `__pycache__/`, `*.py[cod]`, `.venv/`, `staticfiles/`, `data/` (live DBs `db.sqlite3`/`watch_inventory.db`, images, backups, exports), `.codebase-memory/`. `.memory/` + `.claude/` ARE versioned.
+- **Commit `776891f` (initial):** 71 files / 12,658 insertions — full working app (Django port complete & verified, all session I–III fixes included).
+- **New standing rule (user request):** after each completed task, commit with a descriptive message.
+- **Bonus finding:** `static/js/jalali.js` exists (client-side Jalali math) — reuse it for the planned Jalali date-picker component.
+- Next: resume session IV feature work (22-item list, state in JOURNAL b7d2f90); commit per page/feature as each is completed and verified.
+
+---
 ## b7d2f90 — 2026-09-06 (session IV, in progress)
 **type:** explore
 **scope:** multi-page-features
