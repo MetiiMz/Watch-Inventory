@@ -3,6 +3,19 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## 6364203 — 2026-09-07 (session IV, fix)
+**type:** fix
+**scope:** calendar
+**subject:** sold watch image missing in day-panel list — sale_dict key mismatch (product_image/product_name vs image/name)
+
+- **User report:** day box shows purchase/repair thumbnails but sold products show the placeholder clock icon until clicked.
+- **Root cause:** the shared left-box renderer `eventItem(e, kind)` in `static/js/calendar.js:93` reads `e.image` and `e.name`. Month-view sale entries (built inline in `calendar.py` month loop) carry `image`/`name`, but the DAY panel (`api_calendar_day`) used `sale_dict`, whose keys are `product_image`/`product_name` → falsy `e.image` → placeholder branch. Purchases (`product_dict`) and repairs (`repair_dict`) already had `image`/`name`, hence «everything is perfect for purchases and repairs».
+- **Fix (backend only, calendar.py):** day API now emits `{**sale_dict(s), "name": product.name or "محصول حذف‌شده", "image": product.image or ""}` — additive aliases, legacy keys kept (serializer gotcha). No JS change; the already-proven eventItem path picks them up. Deleted-product sales degrade gracefully (empty image → placeholder, name fallback).
+- **Verified live:** `check` clean; `/api/calendar/day?date=2026-09-07` sale entry now has `name: الکسا اتومات`, `image: img_20260906_140316_7c34f189.webp` (plus legacy `product_image`), customer + final_price_display intact. Server stopped. Committed `6364203`.
+
+---
+
+
 ## 7551e14 — 2026-09-07 (session IV, feature)
 **type:** feat
 **scope:** sales (inventory sell modal)
