@@ -15,7 +15,7 @@ def api_settings(request):
                 set_setting(key, clean(payload.get(key)))
         return ok()
     return ok(
-        store_name=get_setting("store_name", ""),
+        store_name=get_setting("store_name", "") or "Tick O Time",
         store_phone=get_setting("store_phone", ""),
         store_address=get_setting("store_address", ""),
         currency=get_setting("currency", "تومان"),
