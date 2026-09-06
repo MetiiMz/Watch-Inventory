@@ -3,6 +3,19 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## 7332513 — 2026-09-07 (session IV, ui change)
+**type:** ui
+**scope:** sidebar (base.html)
+**subject:** removed count badge from Watch Inventory nav item; other badges kept
+
+- **User request:** «عدد کنار بخش انبار ساعت‌ها در منوی کنار حذف شود؛ بج‌های تعمیرات، پیگیری و پرداخت‌ها بماند.»
+- The products nav badge was `nav_badge_low` (count of out-of-stock watches, title «ساعت‌های ناموجود»). Removed the `{% if nav_badge_low %}…{% endif %}` line; left an HTML comment noting it was removed per user request. `nav_badge_low` is still computed in the context — only display removed, so it can be restored with one line.
+- **Verified live:** dashboard 200; remaining badges exactly 3 — «تعمیرات در جریان» (repairs), «سفارش‌های در جریان» (tracking), «فقره‌های با مانده بدهی» (payments); products badge absent (grep count 0). Server stopped. Commit `7332513`.
+- **Gotcha re-confirmed:** `pkill -f` self-match — a shell whose command line contains the plain `manage.py runserver 127.0.0.1:8765` string kills ITSELF when the same command also pkills that pattern (bracket trick in the pattern doesn't help if another part of the same command line matches plainly). Always run pkill and the server-start in SEPARATE shell invocations.
+
+---
+
+
 ## 4fe5591 — 2026-09-07 (session IV, bugfix)
 **type:** fix
 **scope:** settings / app.js
