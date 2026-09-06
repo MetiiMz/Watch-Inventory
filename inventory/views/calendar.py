@@ -108,7 +108,12 @@ def api_calendar_day(request):
         date_iso=iso,
         date_fa=fa_date(iso, with_weekday=True),
         purchases=[product_dict(p) for p in purchases],
-        sales=[sale_dict(s) for s in sales],
+        sales=[
+            {**sale_dict(s),
+             "name": s.product.name if s.product else "محصول حذف‌شده",
+             "image": s.product.image if s.product else ""}
+            for s in sales
+        ],
         repairs_in=[repair_dict(r) for r in repairs_in],
         repairs_out=[repair_dict(r) for r in repairs_out],
     )
