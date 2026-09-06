@@ -112,8 +112,15 @@ def get_monthly_activity(months=12):
 def get_brand_breakdown():
     rows = (
         Product.objects.values("brand")
-        .annotate(count=Count("id"),
-                  value=Coalesce(Sum("purchase_price"), Value(0.0), output_field=FloatField()))
+        .annotate(
+            count=Count("id"),
+            value=Coalesce(Sum("purchase_price"), Value(0.0), output_field=FloatField()),
+            sale_value=Coalesce(Sum("sale_price"), Value(0.0), output_field=FloatField()),
+        )
         .order_by("-value")
     )
-    return [{"brand": r["brand"], "count": r["count"], "value": r["value"]} for r in rows]
+    return [
+        {"brand": r["brand"], "count": r["count"],
+         "value": r["value"], "sale_value": r["sale_value"]}
+        for r in rows
+    ]

@@ -79,10 +79,9 @@
 <div class="grid-main-side mt-20">
   <section class="glass card">
     <div class="card-title">
-      <h3>فعالیت ۱۲ ماه اخیر (شامل ماه جاری)</h3>
+      <h3>سود فروش ۱۲ ماه اخیر (شامل ماه جاری)</h3>
       <div class="chart-legend">
-        <span><span class="lg-dot" style="background: var(--accent)"></span>فروش</span>
-        <span><span class="lg-dot" style="background: var(--amber)"></span>خرید</span>
+        <span><span class="lg-dot" style="background: var(--green)"></span>سود فروش</span>
       </div>
     </div>
     <div class="chart-box" id="sales-chart" data-monthly='{{ monthly | tojson }}'></div>
@@ -100,8 +99,8 @@
           <div class="li-sub">{{ fa_num(b.count) }} عدد</div>
         </div>
         <div class="li-end">
-          <div class="li-title" style="font-size:12.5px">{{ fa_money(b.value) }}</div>
-          <div class="li-sub">تومان ارزش خرید</div>
+          <div class="li-title" style="font-size:12.5px">{{ fa_money(b.value) }} <span class="li-sub">خرید</span></div>
+          <div class="li-sub" style="color:var(--green)">{{ fa_money(b.sale_value) }} تومان فروش</div>
         </div>
       </div>
       {% endfor %}
@@ -208,6 +207,7 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px">
       {% for p in low_stock %}
       <div class="line-item" style="border:1px solid var(--hairline);border-radius:12px;padding:8px 12px">
+        {% if p.image %}<img class="thumb" style="width:36px;height:36px;border-radius:10px" src="/data/images/{{ p.image }}" alt="" loading="lazy">{% else %}<span class="thumb" style="width:36px;height:36px;border-radius:10px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="6.4"/><path d="M12 9.2V12l2.1 1.5"/></svg></span>{% endif %}
         <span class="badge red plain">ناموجود</span>
         <div class="li-main">
           <div class="li-title">{{ p.name }}</div>
@@ -251,27 +251,26 @@
     }
   })();
 
-  /* ---- نمودار خطی فعالیت ۱۲ ماه اخیر: فروش + خرید ---- */
+  /* ---- نمودار خطی سود فروش ۱۲ ماه اخیر (فقط سود، سبز) ---- */
   (function () {
     const box = document.getElementById("sales-chart");
     if (!box) return;
     let monthly = [];
     try { monthly = JSON.parse(box.dataset.monthly || "[]"); } catch { monthly = []; }
     if (!monthly.length) {
-      box.innerHTML = '<div class="empty" style="padding:34px 16px"><div class="e-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 17.5 9.5 12l3.5 3.5L20 8.5"/></svg></div><h4>هنوز فعالیتی ثبت نشده</h4><p>با اولین خرید یا فروش، نمودار اینجا شکل می‌گیرد</p></div>';
+      box.innerHTML = '<div class="empty" style="padding:34px 16px"><div class="e-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 17.5 9.5 12l3.5 3.5L20 8.5"/></svg></div><h4>هنوز فعالیتی ثبت نشده</h4><p>با اولین فروش، نمودار سود اینجا شکل می‌گیرد</p></div>';
       return;
     }
 
     const W = 780, H = 280, PAD_R = 14, PAD_L = 14, PAD_T = 18, PAD_B = 30;
     const plotW = W - PAD_R - PAD_L, plotH = H - PAD_T - PAD_B;
-    const maxVal = Math.max(...monthly.map(m => Math.max(m.revenue, m.purchase_value)), 1);
+    const maxVal = Math.max(...monthly.map(m => m.profit || 0), 1);
     const mag = Math.pow(10, Math.floor(Math.log10(maxVal)));
     const top = Math.ceil(maxVal / mag) * mag;
     const stepX = plotW / (monthly.length - 1 || 1);
 
     const styles = getComputedStyle(document.documentElement);
-    const cAccent = styles.getPropertyValue("--accent").trim() || "#0071e3";
-    const cAmber = styles.getPropertyValue("--amber").trim() || "#c77800";
+    const cGreen = styles.getPropertyValue("--green").trim() || "#1a9e55";
     const cMuted = styles.getPropertyValue("--text-3").trim() || "#8a8d98";
 
     const xAt = (i) => PAD_L + stepX * i;
@@ -289,9 +288,8 @@
     let points = "", labels = "", hits = "";
     monthly.forEach((m, i) => {
       const x = xAt(i);
-      const revY = yAt(m.revenue || 0), purY = yAt(m.purchase_value || 0);
-      points += `<circle cx="${x}" cy="${revY}" r="3.4" fill="${cAccent}"/>`;
-      points += `<circle cx="${x}" cy="${purY}" r="3.4" fill="${cAmber}"/>`;
+      const y = yAt(m.profit || 0);
+      points += `<circle cx="${x}" cy="${y}" r="3.4" fill="${cGreen}"/>`;
       labels += `<text x="${x}" y="${H - 9}" text-anchor="middle" font-size="10.5" font-weight="600" fill="${cMuted}">${m.label}</text>`;
       hits += `<rect class="hit" data-i="${i}" x="${x - stepX / 2}" y="0" width="${stepX}" height="${H}" fill="transparent"/>`;
     });
@@ -304,12 +302,10 @@
     const vLine = `<line id="chart-cursor" x1="0" x2="0" y1="${PAD_T}" y2="${H - PAD_B}" stroke="currentColor" opacity="0.25" visibility="hidden"/>`;
 
     box.innerHTML = `
-      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;color:${cMuted}" role="img" aria-label="نمودار خطی فعالیت ماهانه">
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;color:${cMuted}" role="img" aria-label="نمودار سود فروش ماهانه">
         ${gridLines}
-        <path d="${areaPath("purchase_value")}" fill="${cAmber}" opacity="0.08"/>
-        <path d="${areaPath("revenue")}" fill="${cAccent}" opacity="0.08"/>
-        <path d="${linePath("purchase_value")}" fill="none" stroke="${cAmber}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="${linePath("revenue")}" fill="none" stroke="${cAccent}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="${areaPath("profit")}" fill="${cGreen}" opacity="0.09"/>
+        <path d="${linePath("profit")}" fill="none" stroke="${cGreen}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
         ${vLine}${points}${labels}${hits}
       </svg>
       <div class="bar-tooltip"></div>`;
@@ -327,11 +323,10 @@
       cursor.setAttribute("visibility", "visible");
       const rows = [
         `<div class="bt-title">${m.label} ${faNum(m.jy)}</div>`,
-        m.revenue ? `<div class="bt-row"><span>فروش</span><b>${faMoney(m.revenue)}</b></div>` : "",
-        m.purchase_value ? `<div class="bt-row"><span>خرید</span><b>${faMoney(m.purchase_value)}</b></div>` : "",
+        `<div class="bt-row"><span>سود فروش</span><b style="color:var(--green)">${faMoney(m.profit)}</b></div>`,
         m.count ? `<div class="bt-row"><span>تعداد فروش</span><b>${faNum(m.count)}</b></div>` : "",
       ];
-      tooltip.innerHTML = rows.join("") || `<div class="bt-title">${m.label} ${faNum(m.jy)}</div><div class="bt-row"><span>فعالیتی ثبت نشده</span></div>`;
+      tooltip.innerHTML = rows.join("");
       const rect = box.getBoundingClientRect();
       let x = e.clientX - rect.left;
       x = Math.max(90, Math.min(rect.width - 90, x));
