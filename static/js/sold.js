@@ -320,7 +320,7 @@ $("#search").addEventListener("input", () => {
   $(sel).addEventListener("change", loadSales);
 });
 ["#filter-date-from", "#filter-date-to"].forEach((sel) => {
-  sel.addEventListener("input", () => {
+  $(sel).addEventListener("input", () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(loadSales, 400);
   });
