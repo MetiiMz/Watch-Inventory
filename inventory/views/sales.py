@@ -74,6 +74,7 @@ def api_sales(request):
             Q(product__name__icontains=q) | Q(customer__icontains=q)
             | Q(customer_phone__icontains=q) | Q(product__office_code__icontains=q)
             | Q(product__website_code__icontains=q) | Q(product__reference__icontains=q)
+            | Q(invoice_code__icontains=q)
         )
     if sale_type in SALE_TYPE_FA:
         qs = qs.filter(sale_type=sale_type)
@@ -139,6 +140,13 @@ def _create(request):
     if err:
         return fail(err)
 
+    # کد فاکتور اختیاری — اگر کاربر وارد نکند، به‌صورت خودکار صادر می‌شود
+    manual_invoice = clean(payload.get("invoice_code"))
+    if len(manual_invoice) > 40:
+        return fail("کد فاکتور نمی‌تواند بیش از ۴۰ نویسه باشد")
+    if manual_invoice and Sale.objects.filter(invoice_code=manual_invoice).exists():
+        return fail(f"کد فاکتور «{manual_invoice}» قبلاً استفاده شده است")
+
     if payment_kind == "deposit":
         if paid_now <= 0:
             return fail("برای فروش بیعانه، دست‌کم مبلغ بیعانه را وارد کنید")
@@ -166,6 +174,7 @@ def _create(request):
             payment_type=payment_kind, final_price=final_price,
             paid_cash=paid_cash, paid_pos=paid_pos, paid_card2card=paid_card2card,
             is_settled=is_settled, notes=clean(payload.get("notes")),
+            invoice_code=manual_invoice,
         )
         if payment_kind == "deposit":
             Payment.objects.create(

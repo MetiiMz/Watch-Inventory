@@ -54,6 +54,7 @@ class Sale(models.Model):
     paid_card2card = models.FloatField(default=0)
     is_settled = models.BooleanField(default=True, db_index=True)
     settled_at = models.CharField(max_length=10, default="", blank=True)
+    invoice_code = models.CharField(max_length=40, default="", blank=True)
     notes = models.TextField(default="", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

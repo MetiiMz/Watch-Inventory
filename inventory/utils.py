@@ -195,7 +195,7 @@ def sale_dict(r, product=None):
         f"کارت به کارت {fa_money(d['paid_card2card'])}" if d["paid_card2card"] else "",
     ]))
     d["purchase_price_display"] = fa_money(r.purchase_price)
-    d["invoice_code"] = invoice_code(r.id, r.sale_date)
+    d["invoice_code"] = r.invoice_code or invoice_code(r.id, r.sale_date)
     return d
 
 

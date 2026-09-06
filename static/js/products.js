@@ -330,7 +330,7 @@ async function fetchInvoiceCode() {
   if (!hint) return;
   try {
     const res = await api("/api/sales?next_code=1");
-    hint.textContent = res.next_invoice_code ? `کد فاکتور: ${res.next_invoice_code}` : "";
+    hint.textContent = res.next_invoice_code ? `اگر خالی بگذارید، خودکار صادر می‌شود: ${res.next_invoice_code}` : "";
   } catch { /* پیش‌نمایش کد فاکتور بحرانی نیست */ }
 }
 
@@ -415,6 +415,7 @@ $("#btn-save-sale").addEventListener("click", async () => {
     paid_pos: String(paidPos),
     paid_card2card: String(paidCard2card),
     notes: form.querySelector('[name="notes"]').value,
+    invoice_code: form.querySelector('[name="invoice_code"]').value.trim(),
   };
   const btn = $("#btn-save-sale");
   btn.disabled = true;
