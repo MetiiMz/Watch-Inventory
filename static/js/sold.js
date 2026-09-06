@@ -185,6 +185,7 @@ function showSaleDetail(s) {
       </div>
     </div>`;
 
+  add("کد فاکتور", s.invoice_code ? `<span class="code-pill">${esc(s.invoice_code)}</span>` : "");
   add("تاریخ فروش", s.sale_date_fa);
   add("قیمت فروش", `${s.sale_price_display} تومان`);
   if (s.final_price && s.final_price !== s.sale_price) {

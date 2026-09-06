@@ -240,6 +240,8 @@ def _update(request, s):
     s.sale_price = sale_price
     s.final_price = final_price
     s.profit = profit
+    s.notes = clean(payload.get("notes"))
+    old_date = s.sale_date
     s.sale_date = parsed
     s.customer = customer
     s.customer_phone = customer_phone
@@ -248,8 +250,10 @@ def _update(request, s):
     s.paid_cash = paid_cash
     s.paid_pos = paid_pos
     s.paid_card2card = paid_card2card
-    s.notes = clean(payload.get("notes"))
     s.save()
+    # همگام‌سازی تاریخ فقره‌ی بیعانه‌ی متصل با تاریخ فروش
+    if parsed != old_date:
+        s.payments.update(pay_date=parsed)
     return ok(sale=sale_dict(s, p))
 
 
