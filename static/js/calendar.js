@@ -93,7 +93,7 @@ async function selectDay(iso, btn) {
 function eventItem(e, kind) {
   const cfg = {
     buy:    { color: "blue",  tag: "خرید",  price: e.total_value_display || e.price_display || "" },
-    sell:   { color: "green", tag: "فروش",  price: e.price_display || "" },
+    sell:   { color: "green", tag: "فروش",  price: e.final_price_display || e.price_display || "" },
     rep_in: { color: "amber", tag: "دریافت برای تعمیر", price: e.repair_price_display || "" },
     rep_out:{ color: "gray",  tag: "بازگشت به مشتری",   price: e.repair_price_display || "" },
   }[kind];
@@ -139,6 +139,17 @@ function showEventDetail(kind, id) {
   let rows = "";
   const add = (k, v) => { if (v && String(v).trim()) rows += `<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`; };
 
+  /* تصویر و نام ساعت بالای جزئیات */
+  const img = d.product_image || d.image || "";
+  const imgName = kind === "sell" ? (d.product_name || "محصول حذف‌شده")
+    : kind === "buy" ? d.name : d.watch_name;
+  rows += `<div class="prod-cell" style="margin-bottom:12px">
+    ${img
+      ? `<img class="thumb" style="width:52px;height:52px;border-radius:12px" src="/data/images/${encodeURIComponent(img)}" alt="">`
+      : `<span class="thumb" style="width:52px;height:52px;border-radius:12px"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="6.4"/><path d="M12 9.2V12l2.1 1.5"/></svg></span>`}
+    <div><div class="p-name">${esc(imgName)}</div></div>
+  </div>`;
+
   if (kind === "buy") {
     add("نام ساعت", esc(d.name));
     add("کد دفتر فروشگاه", `<span class="code-pill">${esc(d.office_code)}</span>`);
@@ -151,12 +162,26 @@ function showEventDetail(kind, id) {
     add("وضعیت", d.is_available ? '<span class="badge green plain">موجود</span>' : '<span class="badge red plain">ناموجود</span>');
     add("یادداشت", esc(d.notes));
   } else if (kind === "sell") {
-    add("نام ساعت", esc(d.product_name || "محصول حذف‌شده"));
-    add("قیمت فروش", d.price_display + " تومان");
-    add("سود این فروش", d.profit_display + " تومان");
+    add("کد فاکتور", d.invoice_code ? `<span class="code-pill">${esc(d.invoice_code)}</span>` : "");
+    add("کد دفتر فروشگاه", d.office_code ? `<span class="code-pill">${esc(d.office_code)}</span>` : "");
+    add("کد انبار سایت", d.website_code ? `<span class="code-pill">${esc(d.website_code)}</span>` : "");
+    add("برند", esc(d.brand));
+    add("رفرنس", esc(d.reference));
+    add("قیمت فروش ساعت", d.sale_price_display + " تومان");
+    add("قیمت نهایی فروش", d.final_price_display + " تومان");
+    add("سود این فروش", `<span style="color:var(--green)">${d.profit_display} تومان</span>`);
     add("خریدار", esc(d.customer));
     add("شماره تماس خریدار", d.customer_phone_fa || "");
     add("نوع فروش", d.sale_type_fa || "");
+    add("روش پرداخت", d.payment_type_fa || "");
+    if (d.payment_type === "deposit") {
+      add("وضعیت تسویه", d.is_settled
+        ? '<span class="badge green plain">تسویه شده</span>'
+        : '<span class="badge amber plain">در انتظار تسویه</span>');
+      add("مبلغ پرداخت‌شده", d.paid_total_display + " تومان");
+    } else {
+      add("ریز پرداخت", d.paid_breakdown_fa || "");
+    }
     add("تاریخ فروش", d.sale_date_fa);
     add("یادداشت", esc(d.notes));
   } else {
