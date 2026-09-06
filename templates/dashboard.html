@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+{% block title %}نمای کلی{% endblock %}
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>نمای کلی</h1>
+    <div class="subtitle">خلاصه‌ی وضعیت انبار و فروش فروشگاه</div>
+  </div>
+  <div class="topbar-actions">
+    <span class="page-date" id="today-date"></span>
+  </div>
+</header>
+
+<section class="stat-grid">
+  <div class="stat-card glass">
+    <div class="stat-head">
+      <span class="stat-label">ارزش خرید کل انبار</span>
+      <span class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7.5" width="18" height="12.5" rx="2.5"/><path d="M8 7.5V6a4 4 0 0 1 8 0v1.5"/></svg></span>
+    </div>
+    <div class="stat-value stat-flex"><span class="stat-num">{{ fa_money(stats.total_purchase_value) }}</span><span class="unit">تومان</span></div>
+    <div class="stat-sub">{{ fa_num(stats.product_count) }} مدل ساعت در انبار</div>
+  </div>
+
+  <div class="stat-card glass">
+    <div class="stat-head">
+      <span class="stat-label">ارزش فروش کل انبار</span>
+      <span class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5 12 3.5l8.5 5v7L12 20.5l-8.5-5z"/><path d="M3.5 8.5 12 13l8.5-4.5M12 13v7.5"/></svg></span>
+    </div>
+    <div class="stat-value stat-flex"><span class="stat-num">{{ fa_money(stats.total_sale_value) }}</span><span class="unit">تومان</span></div>
+    <div class="stat-sub">ارزش فروش ساعت‌های موجود</div>
+  </div>
+
+  <div class="stat-card glass">
+    <div class="stat-head">
+      <span class="stat-label">سود انبار (بالقوه)</span>
+      <span class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17.5 9.5 12l3.5 3.5L20 8.5"/><path d="M15 8.5h5v5"/></svg></span>
+    </div>
+    <div class="stat-value stat-flex" style="color: var(--green)"><span class="stat-num">{{ fa_money(stats.total_profit_value) }}</span><span class="unit">تومان</span></div>
+    <div class="stat-sub">اگر همه‌ی موجودی به قیمت فروش فروخته شود</div>
+  </div>
+
+  <div class="stat-card glass">
+    <div class="stat-head">
+      <span class="stat-label">فروش‌های ثبت‌شده</span>
+      <span class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11l1.5 12.5h-14z"/><path d="M9 9.5a3 3 0 0 1 6 0"/></svg></span>
+    </div>
+    <div class="stat-value stat-flex"><span class="stat-num">{{ fa_num(stats.sold_count) }}</span><span class="unit">فقره</span></div>
+    <div class="stat-sub">درآمد {{ fa_money(stats.sold_revenue) }} تومان</div>
+  </div>
+
+  <div class="stat-card glass">
+    <div class="stat-head">
+      <span class="stat-label">موجود در انبار</span>
+      <span class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 7.8 12 3.2 3.5 7.8v8.4L12 20.8l8.5-4.6z"/><path d="M3.5 7.8 12 12.4l8.5-4.6M12 12.4v8.4"/></svg></span>
+    </div>
+    <div class="stat-value stat-flex"><span class="stat-num">{{ fa_num(stats.available_count) }}</span><span class="unit">از {{ fa_num(stats.product_count) }}</span></div>
+    <div class="stat-sub">ساعت‌های موجود برای فروش</div>
+  </div>
+
+  <div class="stat-card glass">
+    <div class="stat-head">
+      <span class="stat-label">مانده‌ی پرداخت‌ها</span>
+      <span class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.8" y="6" width="18.4" height="12.5" rx="2.6"/><path d="M2.8 10.4h18.4"/><path d="M6.4 14.8h4"/></svg></span>
+    </div>
+    <div class="stat-value stat-flex" style="color: var(--amber)"><span class="stat-num">{{ fa_money(stats.unpaid_total) }}</span><span class="unit">تومان</span></div>
+    <div class="stat-sub">{{ fa_num(stats.unpaid_count) }} فقره با مانده بدهی</div>
+  </div>
+
+  <div class="stat-card glass">
+    <div class="stat-head">
+      <span class="stat-label">تعمیرات و سفارش‌های باز</span>
+      <span class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4.6 4.6 0 0 0-6.1 5.9L3 17.8a2 2 0 1 0 2.8 2.8l5.6-5.6a4.6 4.6 0 0 0 5.9-6.1l-2.9 2.9-2.4-.6-.6-2.4z"/></svg></span>
+    </div>
+    <div class="stat-value stat-flex"><span class="stat-num">{{ fa_num(stats.open_repairs + stats.open_tracking) }}</span><span class="unit">مورد</span></div>
+    <div class="stat-sub">{{ fa_num(stats.open_repairs) }} تعمیر + {{ fa_num(stats.open_tracking) }} پیگیری</div>
+  </div>
+</section>
+
+<div class="grid-main-side mt-20">
+  <section class="glass card">
+    <div class="card-title">
+      <h3>فعالیت ۱۲ ماه اخیر (شامل ماه جاری)</h3>
+      <div class="chart-legend">
+        <span><span class="lg-dot" style="background: var(--accent)"></span>فروش</span>
+        <span><span class="lg-dot" style="background: var(--amber)"></span>خرید</span>
+      </div>
+    </div>
+    <div class="chart-box" id="sales-chart" data-monthly='{{ monthly | tojson }}'></div>
+  </section>
+
+  <section class="glass card">
+    <div class="card-title"><h3>انبار بر اساس برند</h3></div>
+    {% if brands %}
+    <div>
+      {% for b in brands[:7] %}
+      <div class="line-item">
+        <span class="rank-num">{{ fa_num(loop.index) }}</span>
+        <div class="li-main">
+          <div class="li-title">{{ b.brand or "بدون برند" }}</div>
+          <div class="li-sub">{{ fa_num(b.count) }} عدد</div>
+        </div>
+        <div class="li-end">
+          <div class="li-title" style="font-size:12.5px">{{ fa_money(b.value) }}</div>
+          <div class="li-sub">تومان ارزش خرید</div>
+        </div>
+      </div>
+      {% endfor %}
+      {% if brands | length > 7 %}
+      <div class="li-sub mt-8" style="text-align:center">و {{ fa_num(brands | length - 7) }} برند دیگر…</div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="empty">
+      <div class="e-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.6"/></svg></div>
+      <h4>هنوز ساعتی ثبت نشده</h4>
+      <p>اولین ساعت را در انبار اضافه کنید</p>
+      <a class="btn btn-primary btn-sm" href="/products">افزودن ساعت</a>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<div class="grid-2 mt-14">
+  <section class="glass card">
+    <div class="card-title">
+      <h3>آخرین فروش‌ها</h3>
+      <a class="btn btn-sm" href="/calendar">مشاهده در تقویم</a>
+    </div>
+    {% if recent_sales %}
+    <div class="table-wrap">
+      <table class="data compact">
+        <thead><tr><th>ساعت</th><th>تاریخ</th><th>قیمت</th><th>سود</th></tr></thead>
+        <tbody>
+          {% for s in recent_sales %}
+          <tr>
+            <td>
+              <div class="prod-cell">
+                {% if s.product_image %}<img class="thumb" style="width:36px;height:36px;border-radius:10px" src="/data/images/{{ s.product_image }}" alt="">{% else %}<span class="thumb" style="width:36px;height:36px;border-radius:10px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="6.4"/><path d="M12 9.2V12l2.1 1.5"/></svg></span>{% endif %}
+                <div>
+                  <div class="p-name">{{ s.product_name or "محصول حذف‌شده" }}</div>
+                  {% if s.customer %}<div class="p-ref">خریدار: {{ s.customer }}{% if s.customer_phone %} — {{ s.customer_phone_fa }}{% endif %}{% endif %}</div>
+                </div>
+              </div>
+            </td>
+            <td class="muted">{{ s.sale_date_fa }}</td>
+            <td class="num">{{ s.final_price_display }}</td>
+            <td class="num" style="color: var(--green)">{{ s.profit_display }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty">
+      <div class="e-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 6.5h11v12h-11z"/><path d="M9 10.5h6M9 14h4"/></svg></div>
+      <h4>هنوز فروشی ثبت نشده</h4>
+      <p>از صفحه‌ی انبار، دکمه‌ی «فروش» هر ساعت را بزنید</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="glass card">
+    <div class="card-title">
+      <h3>آخرین خریدها</h3>
+      <a class="btn btn-sm" href="/products">مشاهده‌ی انبار</a>
+    </div>
+    {% if recent_purchases %}
+    <div class="table-wrap">
+      <table class="data compact">
+        <thead><tr><th>ساعت</th><th>تاریخ خرید</th><th>نوع</th><th>قیمت خرید</th></tr></thead>
+        <tbody>
+          {% for p in recent_purchases %}
+          <tr>
+            <td>
+              <div class="prod-cell">
+                {% if p.image %}<img class="thumb" style="width:36px;height:36px;border-radius:10px" src="/data/images/{{ p.image }}" alt="">{% else %}<span class="thumb" style="width:36px;height:36px;border-radius:10px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="6.4"/><path d="M12 9.2V12l2.1 1.5"/></svg></span>{% endif %}
+                <div>
+                  <div class="p-name">{{ p.name }}</div>
+                  {% if p.supplier %}<div class="p-ref">تأمین: {{ p.supplier }}</div>{% endif %}
+                </div>
+              </div>
+            </td>
+            <td class="muted">{{ p.purchase_date_fa or "—" }}</td>
+            <td>{{ '<span class="badge purple">آنلاین</span>' | safe if p.purchase_type == 'online' else '<span class="badge gray plain">حضوری</span>' | safe }}</td>
+            <td class="num">{{ p.purchase_price_display if p.purchase_price else "—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty">
+      <div class="e-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="7.5" width="18" height="12.5" rx="2.5"/><path d="M8 7.5V6a4 4 0 0 1 8 0v1.5"/></svg></div>
+      <h4>هنوز خریدی ثبت نشده</h4>
+      <p>با ثبت اولین ساعت، اینجا نمایش داده می‌شود</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<div class="mt-14">
+  <section class="glass card">
+    <div class="card-title">
+      <h3>ناموجودها</h3>
+      <span class="badge amber plain">{{ fa_num(stats.unavailable_count) }} مدل</span>
+    </div>
+    {% if low_stock %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px">
+      {% for p in low_stock %}
+      <div class="line-item" style="border:1px solid var(--hairline);border-radius:12px;padding:8px 12px">
+        <span class="badge red plain">ناموجود</span>
+        <div class="li-main">
+          <div class="li-title">{{ p.name }}</div>
+          <div class="li-sub code-pill">{{ p.office_code }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty" style="padding: 30px 16px">
+      <div class="e-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m8.5 12.2 2.4 2.4 4.8-5"/></svg></div>
+      <h4>همه‌ی ساعت‌ها موجودند</h4>
+      <p>هیچ مدلی ناموجود نیست</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  /* اندازه‌ی فونت خودکار برای اعداد بلند — عدد هرگز مخفی نمی‌شود */
+  (function () {
+    document.querySelectorAll(".stat-num").forEach((el) => {
+      const len = el.textContent.replace(/[^\d]/g, "").length;
+      if (len >= 13) el.classList.add("fit-xs");
+      else if (len >= 11) el.classList.add("fit-sm");
+      else if (len >= 9) el.classList.add("fit-md");
+    });
+  })();
+
+  /* تاریخ امروز در هدر */
+  (function () {
+    const el = document.getElementById("today-date");
+    if (el && window.JalaliJS) {
+      const now = new Date();
+      const { jy, jm, jd } = JalaliJS.g2j(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      const names = ["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور","مهر","آبان","آذر","دی","بهمن","اسفند"];
+      const wd = ["یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنج‌شنبه","جمعه","شنبه"][now.getDay()];
+      el.textContent = `${wd}، ${faNum(jd)} ${names[jm - 1]} ${faNum(jy)}`;
+    }
+  })();
+
+  /* ---- نمودار خطی فعالیت ۱۲ ماه اخیر: فروش + خرید ---- */
+  (function () {
+    const box = document.getElementById("sales-chart");
+    if (!box) return;
+    let monthly = [];
+    try { monthly = JSON.parse(box.dataset.monthly || "[]"); } catch { monthly = []; }
+    if (!monthly.length) {
+      box.innerHTML = '<div class="empty" style="padding:34px 16px"><div class="e-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 17.5 9.5 12l3.5 3.5L20 8.5"/></svg></div><h4>هنوز فعالیتی ثبت نشده</h4><p>با اولین خرید یا فروش، نمودار اینجا شکل می‌گیرد</p></div>';
+      return;
+    }
+
+    const W = 780, H = 280, PAD_R = 14, PAD_L = 14, PAD_T = 18, PAD_B = 30;
+    const plotW = W - PAD_R - PAD_L, plotH = H - PAD_T - PAD_B;
+    const maxVal = Math.max(...monthly.map(m => Math.max(m.revenue, m.purchase_value)), 1);
+    const mag = Math.pow(10, Math.floor(Math.log10(maxVal)));
+    const top = Math.ceil(maxVal / mag) * mag;
+    const stepX = plotW / (monthly.length - 1 || 1);
+
+    const styles = getComputedStyle(document.documentElement);
+    const cAccent = styles.getPropertyValue("--accent").trim() || "#0071e3";
+    const cAmber = styles.getPropertyValue("--amber").trim() || "#c77800";
+    const cMuted = styles.getPropertyValue("--text-3").trim() || "#8a8d98";
+
+    const xAt = (i) => PAD_L + stepX * i;
+    const yAt = (v) => H - PAD_B - (top ? (v / top) * plotH : 0);
+
+    const linePath = (key) => monthly.map((m, i) => {
+      const x = xAt(i), y = yAt(m[key] || 0);
+      return (i === 0 ? "M" : "L") + x + "," + y;
+    }).join(" ");
+
+    const areaPath = (key) =>
+      linePath(key) +
+      ` L${xAt(monthly.length - 1)},${H - PAD_B} L${xAt(0)},${H - PAD_B} Z`;
+
+    let points = "", labels = "", hits = "";
+    monthly.forEach((m, i) => {
+      const x = xAt(i);
+      const revY = yAt(m.revenue || 0), purY = yAt(m.purchase_value || 0);
+      points += `<circle cx="${x}" cy="${revY}" r="3.4" fill="${cAccent}"/>`;
+      points += `<circle cx="${x}" cy="${purY}" r="3.4" fill="${cAmber}"/>`;
+      labels += `<text x="${x}" y="${H - 9}" text-anchor="middle" font-size="10.5" font-weight="600" fill="${cMuted}">${m.label}</text>`;
+      hits += `<rect class="hit" data-i="${i}" x="${x - stepX / 2}" y="0" width="${stepX}" height="${H}" fill="transparent"/>`;
+    });
+
+    const gridLines = [0.25, 0.5, 0.75, 1].map(f => {
+      const y = H - PAD_B - plotH * f;
+      return `<line x1="${PAD_L}" x2="${W - PAD_R}" y1="${y}" y2="${y}" stroke="currentColor" opacity="0.07" stroke-dasharray="3 5"/>`;
+    }).join("");
+
+    const vLine = `<line id="chart-cursor" x1="0" x2="0" y1="${PAD_T}" y2="${H - PAD_B}" stroke="currentColor" opacity="0.25" visibility="hidden"/>`;
+
+    box.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;color:${cMuted}" role="img" aria-label="نمودار خطی فعالیت ماهانه">
+        ${gridLines}
+        <path d="${areaPath("purchase_value")}" fill="${cAmber}" opacity="0.08"/>
+        <path d="${areaPath("revenue")}" fill="${cAccent}" opacity="0.08"/>
+        <path d="${linePath("purchase_value")}" fill="none" stroke="${cAmber}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="${linePath("revenue")}" fill="none" stroke="${cAccent}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+        ${vLine}${points}${labels}${hits}
+      </svg>
+      <div class="bar-tooltip"></div>`;
+
+    const tooltip = box.querySelector(".bar-tooltip");
+    const svg = box.querySelector("svg");
+    const cursor = svg.querySelector("#chart-cursor");
+    svg.addEventListener("mousemove", (e) => {
+      const hit = e.target.closest(".hit");
+      if (!hit) { tooltip.classList.remove("show"); cursor.setAttribute("visibility", "hidden"); return; }
+      const i = +hit.dataset.i;
+      const m = monthly[i];
+      cursor.setAttribute("x1", xAt(i));
+      cursor.setAttribute("x2", xAt(i));
+      cursor.setAttribute("visibility", "visible");
+      const rows = [
+        `<div class="bt-title">${m.label} ${faNum(m.jy)}</div>`,
+        m.revenue ? `<div class="bt-row"><span>فروش</span><b>${faMoney(m.revenue)}</b></div>` : "",
+        m.purchase_value ? `<div class="bt-row"><span>خرید</span><b>${faMoney(m.purchase_value)}</b></div>` : "",
+        m.count ? `<div class="bt-row"><span>تعداد فروش</span><b>${faNum(m.count)}</b></div>` : "",
+      ];
+      tooltip.innerHTML = rows.join("") || `<div class="bt-title">${m.label} ${faNum(m.jy)}</div><div class="bt-row"><span>فعالیتی ثبت نشده</span></div>`;
+      const rect = box.getBoundingClientRect();
+      let x = e.clientX - rect.left;
+      x = Math.max(90, Math.min(rect.width - 90, x));
+      const y = e.clientY - rect.top;
+      tooltip.style.left = x + "px";
+      tooltip.style.top = Math.max(80, y) + "px";
+      tooltip.classList.add("show");
+    });
+    svg.addEventListener("mouseleave", () => {
+      tooltip.classList.remove("show");
+      cursor.setAttribute("visibility", "hidden");
+    });
+  })();
+</script>
+{% endblock %}

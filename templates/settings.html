@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% block title %}تنظیمات و پشتیبان{% endblock %}
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>تنظیمات و پشتیبان</h1>
+    <div class="subtitle">نمونه‌ی فروشگاه، آیکون سایت، برندها و نسخه‌های پشتیبان</div>
+  </div>
+</header>
+
+<div class="grid-2">
+  <!-- اطلاعات فروشگاه -->
+  <section class="glass card">
+    <div class="card-title"><h3>اطلاعات فروشگاه</h3></div>
+    <form id="settings-form">
+      <div class="stack" style="gap:12px">
+        <div class="field">
+          <label>نام فروشگاه</label>
+          <input class="input" name="store_name" placeholder="نمونه: TikoTime">
+        </div>
+        <div class="field">
+          <label>شماره تماس فروشگاه</label>
+          <input class="input" name="store_phone" placeholder="اختیاری" dir="ltr" style="text-align:right">
+        </div>
+        <div class="field">
+          <label>آدرس</label>
+          <textarea class="input" name="store_address" rows="2" placeholder="اختیاری"></textarea>
+        </div>
+        <div class="field">
+          <label>واحد پول (فقط نمایش)</label>
+          <input class="input" name="currency" value="تومان">
+        </div>
+        <div class="row">
+          <button class="btn btn-primary" id="btn-save-settings" type="button">ذخیره‌ی اطلاعات</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- آیکون سایت + برندها -->
+  <div class="stack">
+    <section class="glass card">
+      <div class="card-title"><h3>آیکون سایت</h3></div>
+      <div class="img-upload">
+        <img class="img-preview placeholder" id="icon-preview" alt="">
+        <div class="img-upload-actions grow">
+          <div class="row" style="gap:8px">
+            <button class="btn btn-sm" id="btn-pick-icon" type="button">انتخاب آیکون</button>
+            <button class="btn btn-sm btn-danger hidden" id="btn-remove-icon" type="button">حذف آیکون</button>
+          </div>
+          <span class="iu-hint">png یا svg — در تب مرورگر و منوی کنار نشان داده می‌شود</span>
+        </div>
+        <input type="file" id="icon-file" accept=".png,.svg,.ico,.jpg,.jpeg,.webp" class="hidden">
+        <input type="hidden" id="icon-path" value="">
+      </div>
+    </section>
+
+    <section class="glass card">
+      <div class="card-title">
+        <h3>برندها</h3>
+        <span class="badge blue plain" id="brands-count"></span>
+      </div>
+      <div class="row mb-14">
+        <input class="input grow" id="new-brand" placeholder="نام برند جدید…">
+        <button class="btn btn-primary" id="btn-add-brand" type="button">افزودن</button>
+      </div>
+      <div id="brands-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      <p class="li-sub mt-14">برندها در فرم افزودن ساعت به‌عنوان پیشنهاد نمایش داده می‌شوند.</p>
+    </section>
+  </div>
+</div>
+
+<div class="grid-2 mt-14">
+  <!-- پشتیبان‌گیری -->
+  <section class="glass card">
+    <div class="card-title">
+      <h3>نسخه‌ی پشتیبان پایگاه‌داده</h3>
+      <button class="btn btn-primary btn-sm" id="btn-backup-now">پشتیبان‌گیری الان</button>
+    </div>
+    <p class="li-sub mb-14">
+      همه‌ی اطلاعات (ساعت‌ها، فروش‌ها، تعمیرات، پیگیری‌ها، پرداخت‌ها) در یک فایل ذخیره می‌شود.
+      می‌توانید فایل بکاپ را دانلود کنید یا فایل بکاپ قبلی را از بیرون بارگذاری و بازگردانی کنید.
+    </p>
+    <div class="row mb-14" style="gap:8px">
+      <input class="input grow" type="file" id="restore-file" accept=".db" style="font-size:12px">
+      <button class="btn btn-sm" id="btn-upload-restore" type="button">بارگذاری و بازگردانی</button>
+    </div>
+    <div id="backups-list"></div>
+  </section>
+
+  <!-- درباره -->
+  <section class="glass card">
+    <div class="card-title"><h3>درباره‌ی سیستم</h3></div>
+    <div class="kv"><span class="k">نام سیستم</span><span class="v">TikoTime</span></div>
+    <div class="kv"><span class="k">نوع پایگاه‌داده</span><span class="v">SQLite (محلی)</span></div>
+    <div class="kv"><span class="k">فایل پایگاه‌داده</span><span class="v code-pill">data/watch_inventory.db</span></div>
+    <div class="kv"><span class="k">تصاویر</span><span class="v code-pill">data/images/</span></div>
+    <div class="kv"><span class="k">آماده‌ی میزبانی روی سرور</span><span class="v badge green plain">بله</span></div>
+    <p class="li-sub mt-14">
+      برای انتقال به سرور کافی است کل پوشه را کپی کنید؛ همه‌ی داده‌ها داخل پوشه‌ی همین برنامه ذخیره می‌شوند.
+      برای بازیابی روی یک دستگاه جدید، فایل بکاپ را همین‌جا بارگذاری کنید.
+    </p>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+"use strict";
+
+const money = (v) => faNum(Math.round(Number(v) || 0).toLocaleString("en-US")).replace(/,/g, "٬");
+
+async function loadSettings() {
+  try {
+    const s = await api("/api/settings");
+    const f = $("#settings-form");
+    f.store_name.value = s.store_name || "";
+    f.store_phone.value = s.store_phone || "";
+    f.store_address.value = s.store_address || "";
+    f.currency.value = s.currency || "تومان";
+    $("#icon-path").value = s.site_icon || "";
+    renderIconPreview();
+  } catch { /* بی‌اهمیت */ }
+}
+
+$("#btn-save-settings").addEventListener("click", async () => {
+  const f = $("#settings-form");
+  const btn = $("#btn-save-settings");
+  btn.disabled = true;
+  try {
+    await api("/api/settings", {
+      method: "POST",
+      body: {
+        store_name: f.store_name.value,
+        store_phone: f.store_phone.value,
+        store_address: f.store_address.value,
+        currency: f.currency.value,
+      },
+    });
+    toast("اطلاعات فروشگاه ذخیره شد");
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ------------------------------------------------ آیکون سایت */
+
+function renderIconPreview() {
+  const path = $("#icon-path").value;
+  const img = $("#icon-preview");
+  if (path) {
+    img.src = "/data/images/" + encodeURIComponent(path);
+    img.classList.remove("placeholder");
+    $("#btn-remove-icon").classList.remove("hidden");
+  } else {
+    img.removeAttribute("src");
+    img.classList.add("placeholder");
+    img.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m5 19 5.2-5.4a1.6 1.6 0 0 1 2.3 0L19 19"/></svg>';
+    $("#btn-remove-icon").classList.add("hidden");
+  }
+}
+
+$("#btn-pick-icon").addEventListener("click", () => $("#icon-file").click());
+
+$("#icon-file").addEventListener("change", async () => {
+  const file = $("#icon-file").files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast("حجم آیکون باید کمتر از ۲ مگابایت باشد", "error"); return; }
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("kind", "icon");
+  try {
+    const res = await api("/api/upload", { method: "POST", body: fd });
+    await api("/api/settings/site-icon", { method: "POST", body: { icon: res.path } });
+    $("#icon-path").value = res.path;
+    renderIconPreview();
+    toast("آیکون سایت تغییر کرد — با رفرش صفحه در تب مرورگر هم دیده می‌شود");
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    $("#icon-file").value = "";
+  }
+});
+
+$("#btn-remove-icon").addEventListener("click", async () => {
+  try {
+    await api("/api/settings/site-icon", { method: "POST", body: { icon: "" } });
+    $("#icon-path").value = "";
+    renderIconPreview();
+    toast("آیکون حذف شد");
+  } catch (err) {
+    toast(err.message, "error");
+  }
+});
+
+/* ------------------------------------------------ برندها */
+
+async function loadBrands() {
+  try {
+    const data = await api("/api/brands");
+    $("#brands-count").textContent = faNum(data.brands.length) + " برند";
+    const box = $("#brands-list");
+    box.innerHTML = data.brands.map((b) => `
+      <span class="chip" style="cursor:default">
+        ${esc(b)}
+        <button type="button" class="brand-del" data-name="${esc(b)}" title="حذف برند" style="border:0;background:transparent;color:var(--red);cursor:pointer;font-family:inherit;font-weight:800;padding:0 2px">×</button>
+      </span>`).join("");
+  } catch { /* بی‌اهمیت */ }
+}
+
+$("#btn-add-brand").addEventListener("click", async () => {
+  const inp = $("#new-brand");
+  const name = inp.value.trim();
+  if (!name) { toast("نام برند را بنویسید", "error"); return; }
+  try {
+    await api("/api/brands", { method: "POST", body: { name } });
+    toast("برند افزوده شد");
+    inp.value = "";
+    loadBrands();
+  } catch (err) {
+    toast(err.message, "error");
+  }
+});
+
+$("#new-brand").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); $("#btn-add-brand").click(); }
+});
+
+$("#brands-list").addEventListener("click", async (e) => {
+  const del = e.target.closest(".brand-del");
+  if (!del) return;
+  try {
+    await api("/api/brands/delete", { method: "POST", body: { name: del.dataset.name } });
+    toast("برند حذف شد");
+    loadBrands();
+  } catch (err) {
+    toast(err.message, "error");
+  }
+});
+
+/* ------------------------------------------------ پشتیبان */
+
+async function loadBackups() {
+  try {
+    const data = await api("/api/backups");
+    const list = data.backups || [];
+    const box = $("#backups-list");
+    if (!list.length) {
+      box.innerHTML = '<p class="li-sub">هنوز نسخه‌ی پشتیبانی ساخته نشده است.</p>';
+      return;
+    }
+    box.innerHTML = list.map((b) => {
+      const d = new Date(b.modified * 1000);
+      const size = b.size > 1048576
+        ? faNum((b.size / 1048576).toFixed(1)) + " MB"
+        : faNum(Math.max(1, Math.round(b.size / 1024))) + " KB";
+      const when = `${faNum(String(d.getHours()).padStart(2, "0"))}:${faNum(String(d.getMinutes()).padStart(2, "0"))} — ${JalaliJS.isoToJalaliStr(d.toISOString().slice(0, 10))}`;
+      return `
+      <div class="line-item">
+        <span class="stat-icon blue" style="width:34px;height:34px">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v13c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-13M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8"/></svg>
+        </span>
+        <div class="li-main">
+          <div class="li-title code-pill" style="background:transparent;padding:0">${esc(b.name)}</div>
+          <div class="li-sub">${when} — ${size}</div>
+        </div>
+        <div class="li-end row" style="gap:6px">
+          <a class="btn btn-icon btn-sm" href="/api/backups/download/${encodeURIComponent(b.name)}" title="دانلود">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg>
+          </a>
+          <button class="btn btn-icon btn-sm" data-restore="${esc(b.name)}" title="بازگردانی">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h6.5M4 5.5v6.5M4 5.5 11 12a8 8 0 1 0 8 8"/><path d="M4 5.5A8 8 0 0 1 19 9" opacity="0.4"/></svg>
+          </button>
+          <button class="btn btn-icon btn-sm btn-danger" data-del="${esc(b.name)}" title="حذف">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15M9.5 6V4.8A1.3 1.3 0 0 1 10.8 3.5h2.4a1.3 1.3 0 0 1 1.3 1.3V6M6.5 6.5l1 13h9l1-13"/></svg>
+          </button>
+        </div>
+      </div>`;
+    }).join("");
+  } catch { /* بی‌اهمیت */ }
+}
+
+$("#btn-backup-now").addEventListener("click", async () => {
+  const btn = $("#btn-backup-now");
+  btn.disabled = true;
+  try {
+    await api("/api/backups/create", { method: "POST", body: {} });
+    toast("نسخه‌ی پشتیبان ساخته شد");
+    loadBackups();
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* بارگذاری فایل بکاپ از بیرون و بازگردانی */
+$("#btn-upload-restore").addEventListener("click", async () => {
+  const file = $("#restore-file").files[0];
+  if (!file) { toast("ابتدا فایل بکاپ (.db) را انتخاب کنید", "error"); return; }
+  if (!confirm("با بازگردانی، اطلاعات فعلی با محتوای این فایل جایگزین می‌شود و قبلش از وضعیت فعلی پشتیبان خودکار گرفته می‌شود. ادامه می‌دهید؟")) return;
+  const fd = new FormData();
+  fd.append("file", file);
+  const btn = $("#btn-upload-restore");
+  btn.disabled = true;
+  try {
+    const res = await api("/api/backups/upload", { method: "POST", body: fd });
+    await api("/api/backups/restore", { method: "POST", body: { name: res.name } });
+    toast("بازگردانی انجام شد — صفحه رفرش می‌شود");
+    setTimeout(() => location.reload(), 900);
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    btn.disabled = false;
+    $("#restore-file").value = "";
+  }
+});
+
+$("#backups-list").addEventListener("click", async (e) => {
+  const restore = e.target.closest("[data-restore]");
+  const del = e.target.closest("[data-del]");
+  if (restore) {
+    if (!confirm("با بازگردانی، اطلاعات فعلی با نسخه‌ی پشتیبان جایگزین می‌شود. قبل از بازگردانی به‌طور خودکار از وضعیت فعلی پشتیبان گرفته می‌شود. ادامه می‌دهید؟")) return;
+    try {
+      await api("/api/backups/restore", { method: "POST", body: { name: restore.dataset.restore } });
+      toast("بازگردانی انجام شد — صفحه رفرش می‌شود");
+      setTimeout(() => location.reload(), 900);
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+  if (del) {
+    if (!confirm("این نسخه‌ی پشتیبان حذف شود؟")) return;
+    try {
+      await api("/api/backups/delete", { method: "POST", body: { name: del.dataset.del } });
+      toast("نسخه‌ی پشتیبان حذف شد");
+      loadBackups();
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadSettings();
+  loadBrands();
+  loadBackups();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}پیگیری سفارش‌ها{% endblock %}
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>پیگیری سفارش‌ها</h1>
+    <div class="subtitle">ساعت‌ها و قطعاتی که مشتری‌ها سفارش داده‌اند — از ثبت تا تحویل</div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn" id="btn-export">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg>
+      خروجی Excel
+    </button>
+    <button class="btn btn-primary" id="btn-new">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+      ثبت سفارش جدید
+    </button>
+  </div>
+</header>
+
+<section class="toolbar glass">
+  <div class="input-group search-box">
+    <svg class="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.2 4.2"/></svg>
+    <input class="input" id="search" type="search" placeholder="جستجوی نام، کد/مشخصات، نام مشتری یا شماره…">
+  </div>
+  <div class="chip-row" id="status-tabs">
+    <button class="chip active" data-status="">همه</button>
+    <button class="chip" data-status="new">جدید</button>
+    <button class="chip" data-status="ordered">سفارش داده شد</button>
+    <button class="chip" data-status="found">پیدا شد</button>
+    <button class="chip" data-status="delivered">تحویل شد</button>
+    <button class="chip" data-status="cancelled">لغو شد</button>
+  </div>
+</section>
+
+<!-- نوار انتخاب گروهی -->
+<section class="glass card hidden" id="bulk-bar" style="padding:12px 18px; margin-bottom:14px">
+  <div class="row wrap">
+    <span class="badge blue plain" id="bulk-count">۰ مورد انتخاب شده</span>
+    <button class="btn btn-sm btn-danger" id="btn-bulk-delete">حذف موارد انتخاب‌شده</button>
+    <button class="btn btn-sm" id="btn-bulk-clear">لغو انتخاب</button>
+  </div>
+</section>
+
+<div class="cards-grid" id="tracking-grid"></div>
+<div id="tracking-empty" class="empty glass card hidden">
+  <div class="e-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20.5 20.5-4.6-4.6"/><path d="M11 8.5v2.7l1.8 1.2"/></svg></div>
+  <h4>سفارشی برای پیگیری ثبت نشده</h4>
+  <p>اولین سفارش ساعت یا قطعه را ثبت کنید</p>
+  <button class="btn btn-primary btn-sm" onclick="openTrackingModal()">ثبت سفارش جدید</button>
+</div>
+
+<!-- مودال افزودن/ویرایش -->
+<div class="modal-backdrop" id="modal-tracking">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="tracking-modal-title">ثبت سفارش جدید</h3>
+      <button class="modal-close" data-close-modal="modal-tracking" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6.5 6.5 11 11m0-11-11 11"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="tracking-form" autocomplete="off">
+        <div class="img-upload mb-14">
+          <img class="img-preview placeholder" alt="">
+          <div class="img-upload-actions grow">
+            <div class="row" style="gap:8px">
+              <button class="btn btn-sm iu-pick" type="button">انتخاب تصویر</button>
+              <button class="btn btn-sm btn-danger iu-remove hidden" type="button">حذف تصویر</button>
+            </div>
+            <span class="iu-hint">jpg, png, webp — می‌توانید تصویر را بکشید و رها کنید</span>
+          </div>
+          <input type="file" accept="image/*" class="hidden">
+          <input type="hidden" name="image">
+        </div>
+
+        <div class="form-grid">
+          <div class="field span-2">
+            <label>نام ساعت یا قطعه *</label>
+            <input class="input" name="item_name" required placeholder="نمونه: بند چرمی قهوه‌ای / سیکو پرسیج">
+          </div>
+          <div class="field span-2">
+            <label>کد ساعت یا مشخصات قطعه</label>
+            <textarea class="input" name="item_code" rows="2" placeholder="نمونه: SARY055 یا «بند ۲۲ میلی‌متری، سوزنی، رنگ عسلی»"></textarea>
+          </div>
+          <div class="field">
+            <label>نام مشتری</label>
+            <input class="input" name="customer_name" placeholder="نام مشتری">
+          </div>
+          <div class="field">
+            <label>شماره تماس</label>
+            <input class="input" name="customer_phone" placeholder="۰۹۱۲۳۴۵۶۷۸۹" inputmode="tel" dir="ltr" style="text-align:right">
+          </div>
+          <div class="field">
+            <label>قیمت (تومان)</label>
+            <input class="input" name="price" inputmode="numeric" placeholder="0">
+          </div>
+          <div class="field">
+            <label>وضعیت</label>
+            <select class="input" name="status">
+              <option value="new">جدید</option>
+              <option value="ordered">سفارش داده شد</option>
+              <option value="found">پیدا شد / آماده</option>
+              <option value="delivered">تحویل شد</option>
+              <option value="cancelled">لغو شد</option>
+            </select>
+          </div>
+          <div class="field span-2">
+            <label>یادداشت</label>
+            <textarea class="input" name="notes" rows="2" placeholder="اختیاری"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" id="btn-save-tracking" type="button">ذخیره</button>
+      <button class="btn" data-close-modal="modal-tracking" type="button">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- مودال حذف تکی -->
+<div class="modal-backdrop" id="modal-delete-tracking">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <h3>حذف سفارش</h3>
+      <button class="modal-close" data-close-modal="modal-delete-tracking" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6.5 6.5 11 11m0-11-11 11"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0">آیا از حذف سفارش <b id="delete-tracking-name"></b> مطمئن هستید؟</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="btn-confirm-delete" type="button">بله، حذف شود</button>
+      <button class="btn" data-close-modal="modal-delete-tracking" type="button">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- مودال حذف گروهی -->
+<div class="modal-backdrop" id="modal-delete-bulk">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <h3>حذف گروهی</h3>
+      <button class="modal-close" data-close-modal="modal-delete-bulk" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6.5 6.5 11 11m0-11-11 11"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0">حذف <b id="delete-bulk-count"></b> سفارش انتخاب‌شده؟</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="btn-confirm-bulk-delete" type="button">بله، حذف شوند</button>
+      <button class="btn" data-close-modal="modal-delete-bulk" type="button">انصراف</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/tracking.js"></script>
+{% endblock %}

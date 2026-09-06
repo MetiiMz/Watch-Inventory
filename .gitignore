@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Django collected static (whitenoise)
+staticfiles/
+
+# Runtime data: live DBs, user images, backups, exports
+data/
+
+# Tooling artifacts
+.codebase-memory/

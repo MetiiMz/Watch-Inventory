@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e9f0fb">
+<title>{% block title %}TikoTime{% endblock %} — TikoTime</title>
+<link rel="icon" href="{% if site_icon %}/data/images/{{ site_icon }}{% else %}data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%230071e3'/%3E%3Ccircle cx='50' cy='50' r='26' fill='none' stroke='white' stroke-width='6'/%3E%3Cpath d='M50 36v15l10 7' stroke='white' stroke-width='6' stroke-linecap='round' fill='none'/%3E%3C/svg%3E{% endif %}">
+<link rel="stylesheet" href="/static/css/app.css">
+<script>
+/* اعمال تم قبل از رندر برای جلوگیری از فلش */
+(function () {
+  try {
+    var t = localStorage.getItem("satchour-theme") || "light";
+    document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body>
+<div class="bg-scene" aria-hidden="true">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
+
+<div class="shell">
+  <aside class="sidebar glass">
+    <div class="brand">
+      <div class="brand-mark">
+        {% if site_icon %}
+        <img src="/data/images/{{ site_icon }}" alt="" style="width:26px;height:26px;object-fit:contain;border-radius:6px">
+        {% else %}
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6.4"/><path d="M12 9.2V12l2.1 1.5"/><path d="M9 2.8h6M9 21.2h6M8.6 4.8 9 2.8h6l.4 2M8.6 19.2l.4 2h6l.4-2"/></svg>
+        {% endif %}
+      </div>
+      <div>
+        <div class="brand-name">TikoTime</div>
+        <div class="brand-sub">مدیریت انبار فروشگاه</div>
+      </div>
+    </div>
+
+    <a class="nav-item {{ 'active' if active == 'dashboard' }}" href="/dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.4" height="7.4" rx="2.2"/><rect x="13.1" y="3.5" width="7.4" height="7.4" rx="2.2"/><rect x="3.5" y="13.1" width="7.4" height="7.4" rx="2.2"/><rect x="13.1" y="13.1" width="7.4" height="7.4" rx="2.2"/></svg>
+      <span>نمای کلی</span>
+    </a>
+    <a class="nav-item {{ 'active' if active == 'products' }}" href="/products">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6.4"/><path d="M12 9.2V12l2.1 1.5"/><path d="M9 2.8h6M9 21.2h6M8.6 4.8 9 2.8h6l.4 2M8.6 19.2l.4 2h6l.4-2"/></svg>
+      <span>انبار ساعت‌ها</span>
+      {% if nav_badge_low %}<span class="nav-badge" title="ساعت‌های ناموجود">{{ fa_num(nav_badge_low) }}</span>{% endif %}
+    </a>
+    <a class="nav-item {{ 'active' if active == 'calendar' }}" href="/calendar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M8 3v4M16 3v4M3.5 10.2h17"/></svg>
+      <span>تقویم</span>
+    </a>
+    <a class="nav-item {{ 'active' if active == 'sold' }}" href="/sold">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11l1.5 12.5h-14z"/><path d="M9 9.5a3 3 0 0 1 6 0"/></svg>
+      <span>فروش‌ها</span>
+    </a>
+    <a class="nav-item {{ 'active' if active == 'repairs' }}" href="/repairs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4.6 4.6 0 0 0-6.1 5.9L3 17.8a2 2 0 1 0 2.8 2.8l5.6-5.6a4.6 4.6 0 0 0 5.9-6.1l-2.9 2.9-2.4-.6-.6-2.4z"/></svg>
+      <span>تعمیرات</span>
+      {% if nav_badge_repairs %}<span class="nav-badge" title="تعمیرات در جریان">{{ fa_num(nav_badge_repairs) }}</span>{% endif %}
+    </a>
+    <a class="nav-item {{ 'active' if active == 'tracking' }}" href="/tracking">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20.5 20.5-4.6-4.6"/><path d="M11 8.5v2.7l1.8 1.2"/></svg>
+      <span>پیگیری سفارش‌ها</span>
+      {% if nav_badge_tracking %}<span class="nav-badge" title="سفارش‌های در جریان">{{ fa_num(nav_badge_tracking) }}</span>{% endif %}
+    </a>
+    <a class="nav-item {{ 'active' if active == 'payments' }}" href="/payments">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.8" y="6" width="18.4" height="12.5" rx="2.6"/><path d="M2.8 10.4h18.4"/><path d="M6.4 14.8h4"/></svg>
+      <span>پرداخت‌ها</span>
+      {% if nav_badge_unpaid %}<span class="nav-badge" title="فقره‌های با مانده بدهی">{{ fa_num(nav_badge_unpaid) }}</span>{% endif %}
+    </a>
+    <a class="nav-item {{ 'active' if active == 'settings' }}" href="/settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.64 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>
+      <span>تنظیمات و پشتیبان</span>
+    </a>
+
+    <div class="sidebar-footer">
+      <button class="theme-toggle" role="switch" aria-checked="false" aria-label="تغییر تم روشن/تاریک">
+        <span class="tt-label">تم روشن</span>
+        <span class="toggle-pill"></span>
+        <span class="tt-label">تم تاریک</span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<div id="toast-zone" aria-live="polite"></div>
+
+<script src="/static/js/jalali.js"></script>
+<script src="/static/js/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

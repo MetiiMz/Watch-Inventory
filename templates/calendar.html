@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}تقویم خرید و فروش{% endblock %}
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>تقویم خرید و فروش</h1>
+    <div class="subtitle">روی هر روز کلیک کنید و برای دیدن جزئیات، روی هر رویداد بزنید</div>
+  </div>
+  <div class="topbar-actions">
+    <div class="chip-row">
+      <span class="chip plain" style="cursor:default"><span class="lg-dot" style="background:var(--accent);display:inline-block;width:9px;height:9px;border-radius:3px"></span>خرید</span>
+      <span class="chip plain" style="cursor:default"><span class="lg-dot" style="background:var(--green);display:inline-block;width:9px;height:9px;border-radius:3px"></span>فروش</span>
+      <span class="chip plain" style="cursor:default"><span class="lg-dot" style="background:var(--amber);display:inline-block;width:9px;height:9px;border-radius:3px"></span>دریافت تعمیر</span>
+      <span class="chip plain" style="cursor:default"><span class="lg-dot" style="background:var(--text-3);display:inline-block;width:9px;height:9px;border-radius:3px"></span>بازگشت تعمیر</span>
+    </div>
+  </div>
+</header>
+
+<div class="cal-wrap">
+  <section class="glass card">
+    <div class="cal-head">
+      <div class="cal-title">
+        <span id="cal-month-name">—</span>
+        <span class="y" id="cal-year">—</span>
+      </div>
+      <div class="cal-nav">
+        <button class="btn btn-icon" id="cal-prev" title="ماه قبل" aria-label="ماه قبل">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 7 5 5-5 5"/></svg>
+        </button>
+        <button class="btn btn-sm" id="cal-today">امروز</button>
+        <button class="btn btn-icon" id="cal-next" title="ماه بعد" aria-label="ماه بعد">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13.5 7-5 5 5 5"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="cal-grid" id="cal-dow" aria-hidden="true">
+      <span class="cal-dow">شنبه</span>
+      <span class="cal-dow">یکشنبه</span>
+      <span class="cal-dow">دوشنبه</span>
+      <span class="cal-dow">سه‌شنبه</span>
+      <span class="cal-dow">چهارشنبه</span>
+      <span class="cal-dow">پنجشنبه</span>
+      <span class="cal-dow holiday">جمعه</span>
+    </div>
+    <div class="cal-grid" id="cal-cells"></div>
+  </section>
+
+  <aside class="day-panel glass card" id="day-panel">
+    <div class="day-panel-head">
+      <div class="day-panel-title" id="panel-title">یک روز را انتخاب کنید</div>
+      <span class="badge blue plain hidden" id="panel-count"></span>
+    </div>
+    <div class="day-panel-sub" id="panel-sub">برای نمایش جزئیات، از تقویم روز مورد نظر را بزنید</div>
+    <div id="panel-content">
+      <div class="empty" style="padding: 34px 12px">
+        <div class="e-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M8 3v4M16 3v4M3.5 10.2h17"/></svg></div>
+        <h4>هنوز روزی انتخاب نشده</h4>
+        <p>خرید آبی، فروش سبز، تعمیر نارنجی و بازگشت خاکستری است</p>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- مودال جزئیات رویداد -->
+<div class="modal-backdrop" id="modal-event-detail">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <h3 id="event-detail-title">جزئیات</h3>
+      <button class="modal-close" data-close-modal="modal-event-detail" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6.5 6.5 11 11m0-11-11 11"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="event-detail-body"></div>
+    <div class="modal-foot">
+      <a class="btn btn-sm hidden" id="event-detail-link" href="#"></a>
+      <button class="btn" data-close-modal="modal-event-detail" type="button">بستن</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/calendar.js"></script>
+{% endblock %}

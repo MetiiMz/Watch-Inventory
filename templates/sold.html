@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}فروش‌ها{% endblock %}
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>فروش‌ها</h1>
+    <div class="subtitle">فروش‌های تسویه‌شده — با کلیک روی هر ردیف، جزئیات کامل را ببینید</div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn" id="btn-export">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg>
+      خروجی Excel
+    </button>
+  </div>
+</header>
+
+<section class="toolbar glass">
+  <div class="input-group search-box">
+    <svg class="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.2 4.2"/></svg>
+    <input class="input" id="search" type="search" placeholder="جستجوی ساعت، خریدار، تلفن یا کد…">
+  </div>
+  <select class="input" id="filter-sale-type" style="max-width:130px">
+    <option value="">همه‌ی فروش‌ها</option>
+    <option value="person">حضوری</option>
+    <option value="online">آنلاین</option>
+  </select>
+  <select class="input" id="filter-payment" style="max-width:150px">
+    <option value="">همه‌ی پرداخت‌ها</option>
+    <option value="cash">نقدی</option>
+    <option value="pos">کارت‌خوان</option>
+    <option value="card2card">کارت به کارت</option>
+    <option value="deposit">بیعانه</option>
+  </select>
+  <div class="field" style="min-width:120px">
+    <input class="input" id="filter-date-from" placeholder="از تاریخ…" inputmode="numeric">
+  </div>
+  <div class="field" style="min-width:120px">
+    <input class="input" id="filter-date-to" placeholder="تا تاریخ…" inputmode="numeric">
+  </div>
+  <button class="btn btn-icon" id="btn-clear-filters" title="حذف فیلترها">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+  </button>
+</section>
+
+<section class="toolbar glass" style="padding-top:10px;padding-bottom:10px">
+  <span class="li-sub">مرتب‌سازی:</span>
+  <select class="input" id="sort-by" style="max-width:170px">
+    <option value="date">تاریخ فروش</option>
+    <option value="name">نام ساعت</option>
+    <option value="final_price">قیمت نهایی</option>
+    <option value="profit">سود</option>
+    <option value="office_code">کد دفتر فروشگاه</option>
+    <option value="customer">خریدار</option>
+  </select>
+  <select class="input" id="sort-dir" style="max-width:120px">
+    <option value="desc">نزولی</option>
+    <option value="asc">صعودی</option>
+  </select>
+  <span class="divider-v"></span>
+  <div class="chip-row" id="summary-chips"></div>
+</section>
+
+<!-- نوار انتخاب گروهی -->
+<section class="glass card hidden" id="bulk-bar" style="padding:12px 18px; margin-bottom:14px">
+  <div class="row wrap">
+    <span class="badge blue plain" id="bulk-count">۰ مورد انتخاب شده</span>
+    <button class="btn btn-sm btn-danger" id="btn-bulk-delete">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15M9.5 6V4.8A1.3 1.3 0 0 1 10.8 3.5h2.4a1.3 1.3 0 0 1 1.3 1.3V6M6.5 6.5l1 13h9l1-13"/></svg>
+      حذف موارد انتخاب‌شده
+    </button>
+    <button class="btn btn-sm" id="btn-bulk-clear">لغو انتخاب</button>
+  </div>
+</section>
+
+<section class="glass" style="padding: 6px">
+  <div class="table-wrap">
+    <table class="data" id="sales-table">
+      <thead>
+        <tr>
+          <th style="width:34px"><input type="checkbox" id="check-all" style="accent-color:var(--accent);width:15px;height:15px;cursor:pointer" title="انتخاب همه"></th>
+          <th style="width:52px">تصویر</th>
+          <th>ساعت</th>
+          <th>کدها</th>
+          <th>خریدار</th>
+          <th>قیمت فروش</th>
+          <th>تاریخ</th>
+          <th style="width:92px"></th>
+        </tr>
+      </thead>
+      <tbody id="sales-body"></tbody>
+    </table>
+    <div id="sold-empty" class="empty hidden">
+      <div class="e-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11l1.5 12.5h-14z"/><path d="M9 9.5a3 3 0 0 1 6 0"/></svg></div>
+      <h4>فروشی پیدا نشد</h4>
+      <p>از صفحه‌ی انبار، دکمه‌ی «فروش» هر ساعت را بزنید یا فیلترها را تغییر دهید</p>
+      <a class="btn btn-primary btn-sm" href="/products">رفتن به انبار</a>
+    </div>
+  </div>
+</section>
+
+<!-- مودال جزئیات فروش -->
+<div class="modal-backdrop" id="modal-sale-detail">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>جزئیات فروش</h3>
+      <button class="modal-close" data-close-modal="modal-sale-detail" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6.5 6.5 11 11m0-11-11 11"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="sale-detail-body"></div>
+    <div class="modal-foot">
+      <button class="btn" id="btn-detail-edit" type="button">ویرایش</button>
+      <button class="btn" data-close-modal="modal-sale-detail" type="button">بستن</button>
+    </div>
+  </div>
+</div>
+
+<!-- مودال ویرایش فروش -->
+<div class="modal-backdrop" id="modal-sale-edit">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <h3>ویرایش فروش</h3>
+      <button class="modal-close" data-close-modal="modal-sale-edit" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6.5 6.5 11 11m0-11-11 11"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="sale-edit-form" autocomplete="off">
+        <input type="hidden" name="payment_type" value="cash">
+        <div class="form-grid" style="grid-template-columns:1fr">
+          <div class="field">
+            <label>قیمت فروش (تومان)</label>
+            <input class="input" name="sale_price" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label>قیمت نهایی با تخفیف (تومان) — اختیاری</label>
+            <input class="input" name="discount_price" inputmode="numeric">
+            <span class="hint">اگر تخفیف داده‌اید، فقط قیمت نهایی را وارد کنید</span>
+          </div>
+          <div class="field">
+            <label>نوع پرداخت</label>
+            <div class="chip-row" id="edit-payment-chips">
+              <button type="button" class="chip active" data-pay="cash">نقدی</button>
+              <button type="button" class="chip" data-pay="deposit">بیعانه</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>روش‌های پرداخت و مبالغ (اختیاری)</label>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <input class="input" name="paid_cash" inputmode="numeric" placeholder="نقدی">
+              <input class="input" name="paid_pos" inputmode="numeric" placeholder="کارت‌خوان (POS)">
+              <input class="input" name="paid_card2card" inputmode="numeric" placeholder="کارت به کارت">
+            </div>
+          </div>
+          <div class="field">
+            <label>خریدار</label>
+            <input class="input" name="customer" placeholder="نام خریدار">
+          </div>
+          <div class="field">
+            <label>شماره تماس خریدار</label>
+            <input class="input" name="customer_phone" inputmode="tel" dir="ltr" style="text-align:right">
+          </div>
+          <div class="field">
+            <label>تاریخ فروش (شمسی)</label>
+            <input class="input" name="sale_date" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label>نوع فروش</label>
+            <select class="input" name="sale_type">
+              <option value="person">حضوری</option>
+              <option value="online">آنلاین</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>یادداشت</label>
+            <textarea class="input" name="notes" rows="2"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" id="btn-save-edit" type="button">ذخیره‌ی تغییرات</button>
+      <button class="btn" data-close-modal="modal-sale-edit" type="button">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- مودال حذف تکی -->
+<div class="modal-backdrop" id="modal-delete-sale">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <h3>حذف فروش</h3>
+      <button class="modal-close" data-close-modal="modal-delete-sale" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6.5 6.5 11 11m0-11-11 11"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 6px">آیا از حذف فروش <b id="delete-sale-name"></b> مطمئن هستید؟</p>
+      <p class="li-sub" style="margin:0">ساعت مربوطه دوباره در انبار موجود می‌شود و این عمل قابل بازگشت نیست.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="btn-confirm-delete-sale" type="button">بله، حذف شود</button>
+      <button class="btn" data-close-modal="modal-delete-sale" type="button">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- مودال حذف گروهی -->
+<div class="modal-backdrop" id="modal-delete-bulk">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <h3>حذف گروهی</h3>
+      <button class="modal-close" data-close-modal="modal-delete-bulk" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6.5 6.5 11 11m0-11-11 11"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 6px">حذف <b id="delete-bulk-count"></b> فروش انتخاب‌شده؟</p>
+      <p class="li-sub" style="margin:0">ساعت‌های مربوطه دوباره در انبار موجود می‌شوند و این عمل قابل بازگشت نیست.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="btn-confirm-bulk-delete" type="button">بله، حذف شوند</button>
+      <button class="btn" data-close-modal="modal-delete-bulk" type="button">انصراف</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/sold.js"></script>
+{% endblock %}
