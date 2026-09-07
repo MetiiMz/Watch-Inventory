@@ -6,7 +6,7 @@
 ## Project Overview
 - **Name:** TikoTime — سیستم مدیریت انبار فروشگاه ساعت (Watch Shop Inventory Management)
 - **Type:** Fully local, offline-first, Persian (Farsi) web app with Jalali (Shamsi) calendar
-- **Stack:** Django 5.2 + Jinja2 (django-jinja env) + SQLite + vanilla JS. Legacy Flask code preserved read-only in `legacy_flask/`. **Port COMPLETED & verified 2026-09-06 (75/75 E2E tests pass).**
+- **Stack:** Django 5.2 + Jinja2 (django-jinja env) + SQLite + vanilla JS. Legacy Flask code **fully removed** (2026-09-08 — port verified before deletion).
 - **Entry point (target):** `manage.py runserver` / gunicorn inside `.venv` — user explicitly wants `requirements.txt`, NO shell script.
 - **UI/UX:** frozen by user decision — existing templates/static/js must render unchanged.
 - Requirements (pinned): Django==5.2.6, Jinja2==3.1.6, gunicorn==23.0.0, whitenoise==6.11.0, openpyxl==3.1.5
@@ -25,7 +25,7 @@
 | `inventory/migrations/` | Django migrations (0001_initial; 0002 +0003 = quantity add/remove history; 0004 = Sale/Payment `settled_at`; 0005 = seed store_name «Tick O Time») | done |
 | `inventory/excel_io.py` | Excel/CSV import-export via openpyxl (Persian headers) | done |
 | `README.md` | Persian run/usage guide (rewritten 2026-09-06) | done |
-| `legacy_flask/` | frozen Flask reference implementation | read-only |
+| ~~`legacy_flask/`~~ | removed 2026-09-08 — port complete, no references remain | deleted |
 
 ## Core Domain Concepts
 - Inventory rows are **one watch per row** (تعداد field removed again 2026-09-06 at user request — was briefly restored then reverted; sale → ناموجود, sale delete → موجود again). Total value chips = unit prices (legacy semantics).

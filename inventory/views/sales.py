@@ -1,12 +1,6 @@
 # -*- coding: utf-8 -*-
-"""API فروش‌ها.
-
-رفع باگ صفحه‌ی فروش: لیست، همه‌ی فروش‌ها را برمی‌گرداند — حتی بیعانه‌های
-تسویه‌نشده (is_settled=0). نسخه‌ی قدیمی `WHERE is_settled = 1` داشت و
-فروش‌های بیعانه از لیست حذف می‌شدند. نشان «بیعانه» مطابق قبل حفظ شده است.
+"""API فروش‌ها — همه‌ی فروش‌ها در لیست می‌آیند، حتی بیعانه‌های تسویه‌نشده.
 """
-import json
-
 from django.db import transaction
 from django.db.models import Q
 from django.db.models.functions import Lower

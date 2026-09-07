@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """API محصولات — همان رفتار، همان پیام‌های خطا."""
-import json
 
 from django.db import transaction
 from django.db.models import Q

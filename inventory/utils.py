@@ -133,10 +133,6 @@ def today_iso():
     return datetime.date.today().isoformat()
 
 
-def parse_date_or_none(text):
-    return parse_jalali_date(clean(text))
-
-
 # ---------------------------------------------------------------- invoice
 def invoice_code(sale_id, sale_date):
     """کد فاکتور نمایشی و پایدار: TT-<سال/ماه شمسی>-<شناسه فروش>."""

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """API پیگیری سفارش‌ها."""
-import json
 
 from django.db import transaction
 from django.db.models import Q
