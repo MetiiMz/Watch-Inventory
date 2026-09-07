@@ -85,8 +85,8 @@
   --blob-2: #262628;
   --blob-3: #1c1c1e;
 
-  --surface: rgba(35, 35, 36, 0.60);
-  --surface-strong: rgba(44, 44, 46, 0.90);
+  --surface: rgba(29, 29, 31, 0.68);
+  --surface-strong: rgba(44, 44, 46, 0.92);
   --surface-soft: rgba(255, 255, 255, 0.045);
   --border-glass: rgba(255, 255, 255, 0.10);
   --ring: rgba(0, 0, 0, 0.35);
@@ -104,6 +104,8 @@
   --accent-soft: rgba(0, 112, 226, 0.18);
   --on-accent: #ffffff;
   --btn-neutral: #38383a;
+  /* دکمه‌ی خنثی در دارک شیشه‌ای است — نیمه‌شفاف تا بلور پس‌زمینه دیده شود */
+  --btn-neutral-glass: rgba(56, 56, 58, 0.55);
 
   --green: #30d158;
   --green-soft: rgba(48, 209, 88, 0.16);
@@ -164,6 +166,12 @@ body {
 .blob-2 { width: 38vmax; height: 38vmax; bottom: -14vmax; left: -10vmax; background: var(--blob-2); animation: drift2 44s ease-in-out infinite alternate; }
 .blob-3 { width: 26vmax; height: 26vmax; top: 34%; left: 28%; background: var(--blob-3); opacity: 0.55; animation: drift3 52s ease-in-out infinite alternate; }
 [data-theme="dark"] .blob { opacity: 0.8; }
+
+/* دارک — پس‌زمینه‌ی ساده و ثابت سیاه، بدون گرادیان و لکه (سبک اپل) */
+[data-theme="dark"] body { background: #000000; }
+[data-theme="dark"] .bg-scene { background: #000000; }
+[data-theme="dark"] .bg-scene::after { display: none; }
+[data-theme="dark"] .blob { display: none; }
 
 @keyframes drift1 { to { transform: translate(-9vmax, 7vmax) scale(1.12); } }
 @keyframes drift2 { to { transform: translate(8vmax, -6vmax) scale(1.08); } }
@@ -382,6 +390,19 @@ body {
 
 .btn-danger { color: var(--red); }
 .btn-danger:hover { background: var(--red-soft); }
+
+/* دارک — دکمه‌ها شیشه‌ای: خنثی نیمه‌شفاف با بلور، اصلی آبی تخت اپلی */
+[data-theme="dark"] .btn { background: var(--btn-neutral-glass); }
+[data-theme="dark"] .btn:hover { filter: brightness(1.25); background: rgba(66, 66, 68, 0.65); }
+[data-theme="dark"] .btn-primary {
+  background: var(--accent);
+  box-shadow: 0 4px 18px rgba(0, 112, 226, 0.35);
+}
+[data-theme="dark"] .btn-primary:hover {
+  background: var(--accent-strong);
+  filter: none;
+  box-shadow: 0 6px 24px rgba(0, 112, 226, 0.45);
+}
 
 .btn-sm { padding: 6px 13px; font-size: 12px; }
 .btn-icon { padding: 8px; border-radius: 11px; }
