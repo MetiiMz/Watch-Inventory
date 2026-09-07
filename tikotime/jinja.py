@@ -1,4 +1,6 @@
 """Jinja2 environment for Django — helpers identical to the legacy Flask app."""
+import os
+
 from django.conf import settings
 from django.middleware.csrf import get_token
 from django.urls import reverse
@@ -27,6 +29,20 @@ TRACKING_STATUS_COLOR = {
 }
 
 
+def static_v(path):
+    """آدرس static با نسخه‌ی mtime فایل — کش مرورگر را با هر تغییر می‌شکند.
+
+    وایت‌نویز استاتیک‌ها را تا یک سال کش می‌کند (WHITENOISE_MAX_AGE)، پس
+    بدون ?v= تغییرات CSS/JS تا یک سال دیده نمی‌شود.
+    """
+    fs = os.path.join(str(settings.BASE_DIR), "static", path)
+    try:
+        v = int(os.path.getmtime(fs))
+    except OSError:
+        return settings.STATIC_URL + path
+    return f"{settings.STATIC_URL}{path}?v={v}"
+
+
 def environment(**options):
     env = options["environment"]() if callable(options.get("environment")) else None
     if env is None:
@@ -44,6 +60,7 @@ def environment(**options):
         fa_num=fa_num,
         today_jalali=today_jalali,
         static=settings.STATIC_URL,
+        static_v=static_v,
         media=settings.MEDIA_URL,
         csrf_token=lambda request: get_token(request),
         url=reverse,
