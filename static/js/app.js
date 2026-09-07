@@ -87,7 +87,7 @@ const THEME_KEY = "satchour-theme";
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = theme === "dark" ? "#0d1524" : "#e9f0fb";
+  if (meta) meta.content = theme === "dark" ? "#000000" : "#ffffff";
   $$(".theme-toggle").forEach((btn) => {
     btn.setAttribute("aria-checked", theme === "dark" ? "true" : "false");
   });
