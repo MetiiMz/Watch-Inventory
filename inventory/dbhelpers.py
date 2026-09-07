@@ -109,6 +109,64 @@ def delete_backup(filename):
     return False, "فایل یافت نشد"
 
 
+# ---------------------------------------------------------------- clear database
+_CLEAR_TABLES = ("payments", "sales", "products", "repairs", "tracking")
+
+
+def count_records():
+    """شمارش رکوردهای داده‌ای — پیش‌نمایش قبل از پاک‌سازی."""
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cur = conn.cursor()
+        out = {}
+        for t in _CLEAR_TABLES:
+            try:
+                cur.execute(f"SELECT COUNT(*) FROM {t}")
+                out[t] = cur.fetchone()[0]
+            except sqlite3.Error:
+                out[t] = 0
+        return out
+    finally:
+        conn.close()
+
+
+def clear_database():
+    """پاک‌سازی کامل داده‌های دوره برای شروع سال جدید.
+
+    اول به‌صورت خودکار از وضعیت فعلی پشتیبان گرفته می‌شود
+    (pre_clear_...)، بعد ساعت‌ها، فروش‌ها، پرداخت‌ها، تعمیرات و
+    پیگیری‌ها در یک تراکنش حذف می‌شوند؛ شمارنده‌ی id ها صفر می‌شود
+    (شماره‌گذاری از ۱ شروع می‌شود) و فایل VACUUM می‌شود.
+    تنظیمات فروشگاه، برندها و آیکون سایت دست‌نخورده می‌مانند.
+    """
+    backup_db("pre_clear_" + _stamp() + ".db")
+    conn = sqlite3.connect(DB_PATH, isolation_level=None)
+    try:
+        cur = conn.cursor()
+        counts = {}
+        cur.execute("PRAGMA foreign_keys = OFF")
+        cur.execute("BEGIN")
+        for t in _CLEAR_TABLES:
+            try:
+                cur.execute(f"SELECT COUNT(*) FROM {t}")
+                counts[t] = cur.fetchone()[0]
+                cur.execute(f"DELETE FROM {t}")
+            except sqlite3.Error:
+                counts[t] = 0
+        # سال تازه، شماره‌های تازه — id از ۱ شروع شود
+        try:
+            cur.execute(
+                "DELETE FROM sqlite_sequence WHERE name IN (?, ?, ?, ?, ?)",
+                _CLEAR_TABLES)
+        except sqlite3.Error:
+            pass  # sqlite_sequence هنوز وجود ندارد
+        cur.execute("COMMIT")
+        cur.execute("VACUUM")
+    finally:
+        conn.close()
+    return counts
+
+
 # --- schema fixup ---
 # بکاپ‌های نسخه‌ی Flask ممکن است ساختار قدیمی داشته باشند (بدون PK واقعی).
 # بعد از بازگردانی، ساختار را هم‌تراز Django می‌کنیم.

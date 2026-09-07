@@ -18,7 +18,7 @@ def index(request):
 
 def dashboard(request):
     stats = get_dashboard_stats()
-    monthly = get_monthly_activity(12)
+    monthly = get_monthly_activity()
     brands = get_brand_breakdown()
     sales_rows = (
         Sale.objects.select_related("product")

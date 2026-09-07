@@ -8,7 +8,9 @@ from django.db import close_old_connections
 from django.http import FileResponse
 from django.views.decorators.http import require_POST
 
-from inventory.dbhelpers import backup_db, delete_backup, list_backups, restore_db
+from inventory.dbhelpers import (
+    backup_db, clear_database, count_records, delete_backup, list_backups, restore_db,
+)
 
 from .common import fail, get_payload, ok
 
@@ -72,6 +74,22 @@ def api_backups_delete(request):
     if not good:
         return fail(err)
     return ok()
+
+
+def api_database_info(request):
+    """شمارش رکوردهای داده‌ای فعلی — پیش‌نمایش قبل از پاک‌سازی."""
+    return ok(counts=count_records())
+
+
+@require_POST
+def api_database_clear(request):
+    """پاک‌سازی کامل داده‌ها برای شروع دوره‌ی جدید.
+
+    قبل از پاک‌سازی به‌صورت خودکار نسخه‌ی پشتیبان گرفته می‌شود.
+    """
+    close_old_connections()
+    counts = clear_database()
+    return ok(cleared=counts)
 
 
 def api_backups(request):

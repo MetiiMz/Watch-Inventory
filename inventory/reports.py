@@ -47,20 +47,19 @@ def get_dashboard_stats():
     }
 
 
-def get_monthly_activity(months=12):
-    """فعالیت ۱۲ ماه اخیر برای نمودار خطی — با ۲ کوئری به‌جای ۲۴."""
+def get_monthly_activity(jy=None):
+    """۱۲ ماه یک سال جلالی (فروردین تا اسفند) برای نمودار خطی.
+
+    اگر سال داده نشود، سال جلالی جاری استفاده می‌شود. ماه‌های بعد از
+    ماه جاریِ همان سال با future=True و مقادیر صفر برمی‌گردند تا
+    نمودار خط را فقط تا ماه جاری بکشد.
+    """
     today = datetime.date.today()
     jy_now, jm_now, _ = gregorian_to_jalali(today.year, today.month, today.day)
+    if jy is None:
+        jy = jy_now
 
-    months_list = []
-    jy, jm = jy_now, jm_now
-    for _ in range(months):
-        months_list.append((jy, jm))
-        jm -= 1
-        if jm == 0:
-            jm = 12
-            jy -= 1
-    months_list.reverse()
+    months_list = [(jy, jm) for jm in range(1, 13)]
 
     ranges = []
     for jy, jm in months_list:
@@ -100,27 +99,41 @@ def get_monthly_activity(months=12):
     out = []
     for (jy, jm), start, end in ranges:
         s = sales_by_month.get((jy, jm), [0.0, 0.0, 0])
+        future = (jy > jy_now) or (jy == jy_now and jm > jm_now)
         out.append({
             "jy": jy, "jm": jm,
             "label": MONTH_NAMES[jm - 1],
-            "revenue": s[0], "profit": s[1], "count": s[2],
-            "purchase_value": prod_by_month.get((jy, jm), 0.0),
+            "revenue": 0 if future else s[0],
+            "profit": 0 if future else s[1],
+            "count": 0 if future else s[2],
+            "purchase_value": 0 if future else prod_by_month.get((jy, jm), 0.0),
+            "future": future,
         })
     return out
 
 
 def get_brand_breakdown():
+    """انبار موجود (ساعت‌های در انبار) به تفکیک برند.
+
+    برای هر برند: تعداد ساعت‌های موجود، ارزش خرید، ارزش فروش و
+    سود بالقوه (فروش − خرید) اگر همه‌ی موجودی به قیمت فروش فروخته شود.
+    ساعت‌های فروخته‌شده (available=False) لحاظ نمی‌شوند.
+    """
     rows = (
-        Product.objects.values("brand")
+        Product.objects.filter(available=True)
+        .values("brand")
         .annotate(
             count=Count("id"),
             value=Coalesce(Sum("purchase_price"), Value(0.0), output_field=FloatField()),
             sale_value=Coalesce(Sum("sale_price"), Value(0.0), output_field=FloatField()),
+            profit=Coalesce(
+                Sum(F("sale_price") - F("purchase_price")), Value(0.0), output_field=FloatField()),
         )
         .order_by("-value")
     )
     return [
         {"brand": r["brand"], "count": r["count"],
-         "value": r["value"], "sale_value": r["sale_value"]}
+         "value": r["value"], "sale_value": r["sale_value"],
+         "profit": r["profit"]}
         for r in rows
     ]

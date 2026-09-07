@@ -1008,6 +1008,42 @@ tr.row-selected { background: var(--accent-soft) !important; }
 .bt-row { display: flex; justify-content: space-between; gap: 14px; color: var(--text-2); }
 .bt-row b { color: var(--text-1); }
 
+/* صفحه‌بندی سال نمودار داشبورد */
+.chart-box { transition: opacity 0.15s ease; }
+.chart-box.chart-loading { opacity: 0.45; pointer-events: none; }
+.chart-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 8px;
+  direction: ltr; /* فلش چپ = سال قبل، فلش راست = سال بعد */
+}
+.pager-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid var(--hairline);
+  background: var(--surface-soft);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+}
+.pager-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--surface); }
+.pager-btn:disabled { opacity: 0.35; cursor: default; }
+.pager-year {
+  min-width: 64px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 13.5px;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ------------------------------------------------ misc lists */
 
 .line-item {
@@ -1034,6 +1070,52 @@ tr.row-selected { background: var(--accent-soft) !important; }
   font-weight: 800;
   flex: 0 0 auto;
 }
+
+/* ------------------------------------------------ انبار بر اساس برند (داشبورد) */
+
+.brand-item {
+  padding: 11px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+.brand-top { display: flex; align-items: center; gap: 12px; }
+.brand-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--hairline);
+}
+.brand-metrics > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.brand-metrics .bm-k { font-size: 10.5px; color: var(--text-3); }
+.brand-metrics .bm-v {
+  font-size: 12.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.brand-metrics .bm-v small { font-size: 9.5px; font-weight: 600; color: var(--text-3); }
+
+/* ------------------------------------------------ پاک‌سازی پایگاه‌داده (تنظیمات) */
+
+.danger-zone { border-color: rgba(229, 52, 43, 0.4); }
+.clear-counts { display: flex; flex-wrap: wrap; gap: 8px; }
+.cc-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  background: var(--red-soft);
+  color: var(--text-2);
+  font-size: 12px;
+}
+.cc-item b { font-weight: 800; color: var(--text-1); font-variant-numeric: tabular-nums; }
+.cc-item.cc-total { background: var(--amber-soft); }
 
 .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
 .kv:last-child { border-bottom: 0; }

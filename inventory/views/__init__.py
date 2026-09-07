@@ -24,11 +24,12 @@ from .payments import (  # noqa: F401
     api_payments, api_payments_bulk_delete,
 )
 from .calendar import api_calendar, api_calendar_day  # noqa: F401
+from .dashboard_api import api_monthly_activity  # noqa: F401
 from .exportimport import (  # noqa: F401
     api_import_products, api_import_template, export_file,
 )
 from .backups import (  # noqa: F401
     api_backups, api_backups_create, api_backups_delete, api_backups_download,
-    api_backups_restore, api_backups_upload,
+    api_backups_restore, api_backups_upload, api_database_clear, api_database_info,
 )
 from .settings_api import api_settings, api_settings_site_icon  # noqa: F401

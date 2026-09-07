@@ -104,6 +104,26 @@
     </p>
   </section>
 </div>
+
+<!-- پاک‌سازی پایگاه‌داده — شروع دوره‌ی جدید -->
+<div class="mt-14">
+  <section class="glass card danger-zone">
+    <div class="card-title">
+      <h3>پاک‌سازی پایگاه‌داده — شروع دوره‌ی جدید</h3>
+      <span class="badge red plain">غیرقابل بازگشت</span>
+    </div>
+    <p class="li-sub mb-14">
+      برای شروع سال جدید: اول با «پشتیبان‌گیری الان» از همه‌ی اطلاعات نسخه‌ی پشتیبان بگیرید و فایل را در جای امن نگه دارید؛
+      سپس همه‌ی داده‌ها (ساعت‌ها، فروش‌ها، پرداخت‌ها، تعمیرات، پیگیری‌ها) را پاک کنید تا انبار از صفر شروع شود.
+      قبل از پاک‌سازی به‌طور خودکار نسخه‌ی پشتیبان گرفته می‌شود و در فهرست بکاپ‌ها با نام pre_clear_… دیده می‌شود؛
+      شماره‌گذاری رکوردها هم از ۱ شروع می‌شود. تنظیمات فروشگاه، برندها و آیکون سایت پاک نمی‌شوند و تصاویر ثبت‌شده باقی می‌مانند.
+    </p>
+    <div class="clear-counts" id="clear-counts"></div>
+    <div class="row mt-14">
+      <button class="btn btn-danger" id="btn-clear-db" type="button">پاک‌سازی کامل پایگاه‌داده…</button>
+    </div>
+  </section>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -364,10 +384,52 @@ $("#backups-list").addEventListener("click", async (e) => {
   }
 });
 
+/* پاک‌سازی پایگاه‌داده برای شروع دوره‌ی جدید */
+async function loadClearInfo() {
+  try {
+    const d = await api("/api/database/info");
+    const c = d.counts || {};
+    const items = [
+      ["ساعت", c.products], ["فروش", c.sales], ["پرداخت", c.payments],
+      ["تعمیر", c.repairs], ["پیگیری", c.tracking],
+    ];
+    const total = items.reduce((s, [, v]) => s + (Number(v) || 0), 0);
+    $("#clear-counts").innerHTML =
+      items.map(([k, v]) => `<span class="cc-item"><b>${faNum(v || 0)}</b> ${k}</span>`).join("") +
+      `<span class="cc-item cc-total"><b>${faNum(total)}</b> رکورد در مجموع</span>`;
+    $("#btn-clear-db").disabled = total === 0;
+  } catch { /* بی‌اهمیت */ }
+}
+
+$("#btn-clear-db").addEventListener("click", async () => {
+  if (!confirm("همه‌ی ساعت‌ها، فروش‌ها، پرداخت‌ها، تعمیرات و پیگیری‌ها برای همیشه حذف می‌شوند. " +
+    "تنظیمات فروشگاه و برندها حفظ می‌شوند. قبل از حذف، به‌طور خودکار از وضعیت فعلی پشتیبان گرفته می‌شود. ادامه می‌دهید؟")) return;
+  const phrase = prompt("برای تأیید نهایی، عبارت «پاک کن» را تایپ کنید:");
+  if ((phrase || "").trim() !== "پاک کن") {
+    toast("عبارت تأیید درست نبود — پاک‌سازی لغو شد", "error");
+    return;
+  }
+  const btn = $("#btn-clear-db");
+  btn.disabled = true;
+  try {
+    const res = await api("/api/database/clear", { method: "POST", body: {} });
+    const c = res.cleared || {};
+    const total = ["products", "sales", "payments", "repairs", "tracking"]
+      .reduce((s, k) => s + (Number(c[k]) || 0), 0);
+    toast(`پاک‌سازی انجام شد — ${faNum(total)} رکورد حذف شد (بکاپ خودکار ساخته شد)`);
+    loadBackups();
+    loadClearInfo();
+  } catch (err) {
+    toast(err.message, "error");
+    btn.disabled = false;
+  }
+});
+
 document.addEventListener("DOMContentLoaded", () => {
   loadSettings();
   loadBrands();
   loadBackups();
+  loadClearInfo();
 });
 </script>
 {% endblock %}

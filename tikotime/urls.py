@@ -52,6 +52,9 @@ urlpatterns = [
     path("api/calendar", views.api_calendar),
     path("api/calendar/day", views.api_calendar_day),
 
+    # dashboard chart
+    path("api/reports/monthly-activity", views.api_monthly_activity),
+
     # export / import
     path("export/<kind>.<fmt>", views.export_file),
     path("api/import/products", views.api_import_products),
@@ -64,6 +67,10 @@ urlpatterns = [
     path("api/backups/download/<path:fname>", views.api_backups_download),
     path("api/backups/restore", views.api_backups_restore),
     path("api/backups/delete", views.api_backups_delete),
+
+    # database clear — پاک‌سازی برای شروع دوره‌ی جدید
+    path("api/database/info", views.api_database_info),
+    path("api/database/clear", views.api_database_clear),
 
     # settings
     path("api/settings", views.api_settings),
