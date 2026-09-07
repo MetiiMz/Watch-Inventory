@@ -3,6 +3,19 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## ab9d9a7 — 2026-09-08 (session V, theme)
+**type:** style
+**scope:** app.css + base.html + app.js (theme tokens)
+**subject:** user palette applied — glass design kept, colors swapped to neutral
+
+- **User palette:** dark → main base #000000, secondary #232324, buttons #0070e2/#38383a, text #f5f5f7; light → #ffffff / #f5f5f7, buttons #0070e2/#eeeef1, text #232324. «appearance is great — just add these colors»: structure untouched, tokens recolored.
+- **Token mapping:** `--bg-1`=main base, `--bg-2`=secondary base; blobs became neutral tints of the secondary base (light #e9e9ee/#f0f0f3/#e2e2e8, dark #2e2e30/#262628/#1c1c1e) — liquid-glass background preserved without the old blue cast. `--text-1` exact per palette; text-2/3 neutralized to Apple-style grays (light #48484d/#86868b, dark #aeaeb2/#6e6e73).
+- **Buttons:** NEW `--btn-neutral` token — `.btn` + `.pager-btn` background now #38383a (dark) / #eeeef1 (light) instead of translucent surface. Primary = `--accent: #0070e2` with same-hue gradient top `--accent-strong: #1e80e8` (exact hex requested stays the dominant/read color). accent-soft rgba(0,112,226,…).
+- **Dark surfaces rebuilt neutral:** `--surface` rgba(35,35,36,.60), `--surface-strong` rgba(44,44,46,.90) (from #232324 family, replacing navy rgba(22,28,42)/rgba(28,35,52)). Glass blur/borders/rim/shadow structure unchanged.
+- **Global neutralization (sed):** bluish shadow/ring/hairline rgba(23,48,96|28,54,105|19,48,99 → rgba(0,0,0; rgba(23,43,82 → rgba(35,35,36 (also fixed --gray-soft). Theme-color meta: base.html default + app.js runtime switch now #ffffff/#000000.
+- **Verified:** brace balance + both palettes asserted by script; zero stale values (#0a84ff/#0071e3/#dfeafa/#e9f0fb/#0a0f1a/#0d1524 and bluish rgba) remain anywhere; node --check on app.js; all 8 pages + root (follows pre-existing 302 → /dashboard, confirmed identical on clean tree via git stash) render 200. Commit `ab9d9a7`.
+
+---
 ## c94df1f — 2026-09-08 (session V, feature batch)
 **type:** feat
 **scope:** dashboard + settings (yearly-reset workflow)
