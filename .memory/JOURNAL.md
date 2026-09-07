@@ -1,6 +1,13 @@
 # Journal — TikoTime (Watch Inventory)
 
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
+## 2026-09-08 — Cleanup: legacy Flask removal + dead-code sweep (331defd)
+- **Removed:** `legacy_flask/` (app.py, database.py, reports.py, excel_io.py, run.sh/bat — ~2,900 lines), stale root `jalali.py` (superseded by `inventory/jalali.py`), old `tests/test_calendar_sale_deletion.py`, `.claude/PROGRESS.md`, stale `data/inventory.db` artifact.
+- **Dead code swept:** `parse_date_or_none` from inventory/utils.py; unused `import json` from products/repairs/tracking views; stale bugfix narrative from sales.py docstring. Pyflakes run beforehand; all removals grep-verified unreferenced.
+- **Ported:** calendar-sale-consistency tests to native Django `tests/test_calendar_sales.py` (3 tests: sale visible→deleted in both calendar views, deposit-receipt cascade on bulk delete, product-delete cascade). All 3 pass.
+- **Docs:** README + .memory/INDEX.md updated to state Flask code fully removed.
+- **Verify:** manage.py check clean, makemigrations --check clean, 8 pages 200, all JS node --check OK, zero flask references in code (memory COMMANDS.md history mentions are historical only).
+- **Gotcha:** `sed -i` on this mount prints "preserving permissions" warnings — harmless.
 
 ---
 ## 2b9d117 — 2026-09-08 (session VIII, style)
