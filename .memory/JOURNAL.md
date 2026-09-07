@@ -3,6 +3,32 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## c94df1f — 2026-09-08 (session V, feature batch)
+**type:** feat
+**scope:** dashboard + settings (yearly-reset workflow)
+**subject:** chart year pagination + brand breakdown (count/purchase/sale/profit) + database clear for new year
+
+Three features from session V (context was compacted mid-session — full details reconstructed here):
+
+**1. Monthly-activity chart year pagination (dashboard):**
+- New endpoint `GET api/reports/monthly-activity?year=<jy>` in `inventory/views/dashboard_api.py` (NEW file — was untracked until this commit). Jalali year validation; invalid/out-of-range → 400 with Persian error. No param = current year.
+- `templates/dashboard.html` chart IIFE refactored: drawing logic extracted into `renderChart()`; `loadYear(jy)` fetches + re-renders with `.chart-loading` fade, guards concurrent loads; `updatePager()` sets `#chart-year-label` (Persian digits), syncs the h3 title + SVG aria-label, disables buttons while loading; `#chart-next-year` disabled at current Jalali year (resolved via `JalaliJS`, safe fallback). Initial render still uses server-provided `data-monthly` (no extra fetch on load). All visuals preserved: Catmull-Rom curves, gradient fills, dashed current-month marker, faded future labels, hover tooltip + cursor line.
+- Simulated full script in Node with DOM stubs: prev → 1404 renders 12 real months (0 faded), next → back to 1405 (6 real + 6 faded), arrows enable/disable correctly.
+
+**2. Inventory-by-Brand box metrics (dashboard):**
+- `inventory/reports.py get_brand_breakdown()` now scopes to in-stock only (`available=True`; sold watches excluded — verified: brand sums = 29,000,000 of 72,300,000 total, sold 43,300,000 excluded) and adds `profit = Sum(sale_price − purchase_price)` (potential profit). Ordering kept: desc by purchase value. No signature change; `pages.py` caller untouched.
+- Brand cards rebuilt in dashboard.html: brand + rank, «N عدد در انبار» subtitle, 3-col metrics row (ارزش خرید / ارزش فروش / سود بالقوه); profit green when ≥0, amber when negative. CSS: `.brand-item`, `.brand-top`, `.brand-metrics` (grid 260→300px), all via existing CSS vars (dark mode free). Math cross-checked against manual ORM aggregation for every brand; dev DB: رومانل 1 watch 17M/28M/11M, ویولت 1 watch 12M/35M/23M.
+- NOTE (open item): top stat card «ارزش فروش کل انبار» still aggregates ALL products (pre-existing) — user may want it scoped to in-stock for consistency.
+
+**3. Database clear for yearly reset (settings):**
+- User workflow: enter everything all year → manual backup stored offsite → clear → start fresh. 
+- `inventory/dbhelpers.py`: `count_records()` (preview) + `clear_database()` — auto safety backup `pre_clear_<ts>.db` FIRST, then one transaction deletes payments/sales/products/repairs/tracking, `DELETE FROM sqlite_sequence` for those 5 tables (ids restart at 1), VACUUM. Settings/brands/site icon/images preserved. `isolation_level=None` + explicit BEGIN/COMMIT for the transaction.
+- API: `GET api/database/info` (preview), `POST api/database/clear` (require_POST; GET → 405). Wired through `views/__init__.py` + `urls.py`.
+- settings.html danger-zone card below backup card: red border + «غیرقابل بازگشت» badge, live count pills (`.cc-item`, total in amber), button disabled when total=0, **double confirm**: dialog then typed phrase «پاک کن» (trim-compared; mismatch cancels with error toast). After clear: toast with deleted count, backups list + counts refresh.
+- **Verified on temp copy only** (`TIKOTIME_DB=/tmp/tikot_clear_test.db`, copy of real DB; BACKUP_DIR monkeypatched to tmpdir — real data untouched, confirmed post-test: 6 products still in `data/db.sqlite3`): preview matched (6/4/2/1/1); clear emptied all 5 tables; brands+settings intact; pre_clear backup contained the 6 original products; info → all zeros; fresh Product got **id=1**.
+
+---
+
 ## 7332513 — 2026-09-07 (session IV, ui change)
 **type:** ui
 **scope:** sidebar (base.html)
