@@ -3,6 +3,19 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## c5b9f29 — 2026-09-08 (session V, bugfix)
+**type:** fix
+**scope:** static serving / whitenoise (settings + jinja + templates)
+**subject:** user saw zero visual changes — stale staticfiles copy + 1-year browser cache
+
+- **User report:** «I don't see any changes … appearance hasn't changed» after the palette commit ab9d9a7. CSS itself was correct on disk and in git (tokens verified).
+- **ROOT CAUSE 1:** app uses **whitenoise** (middleware + `CompressedStaticFilesStorage`, `WHITENOISE_MAX_AGE = 1 year`). WhiteNoise serves the **collected `staticfiles/` copy** (gitignored), last collected **Sep 6** — so every CSS/JS edit since (year pagination, brand cards, danger zone, full palette) was never served. `static/` edits are invisible until `collectstatic` runs.
+- **ROOT CAUSE 2:** unversioned `/static/...` URLs + 1-year max-age = even after re-collecting, browsers would serve cached assets for up to a year.
+- **Fix:** (1) `manage.py collectstatic --noinput --clear` — 14 files, 10 post-processed; collected app.css now has the new palette. (2) Cache-busting: new Jinja global **`static_v(path)`** in `tikotime/jinja.py` → `/static/<path>?v=<mtime-int>` (falls back to plain URL if file missing); applied to app.css + jalali.js + app.js + jalali-datepicker.js in base.html and the 6 page scripts. Every future static edit auto-busts cache on next load — **remember: still must re-run collectstatic after static changes** (whitenoise serves only staticfiles/).
+- **Gotcha worth remembering:** Django test client hits whitenoise middleware → static responses are `WhiteNoiseFileResponse` (streaming) — `.content` raises AttributeError; read via `b''.join(r.streaming_content)`. Also `/` 302-redirects to `/dashboard` (pre-existing).
+- **Verified end-to-end:** rendered pages emit `?v=1788816770` URLs; `/static/css/app.css?v=…` → 200 with btn-neutral ×4, #000000/#232324 present, old navy rgba(22,28,42) absent; all 7 other pages versioned; py_compile ok. Commit `c5b9f29`.
+
+---
 ## ab9d9a7 — 2026-09-08 (session V, theme)
 **type:** style
 **scope:** app.css + base.html + app.js (theme tokens)
