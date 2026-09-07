@@ -3,6 +3,20 @@
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
 ---
+## 2b9d117 — 2026-09-08 (session VIII, style)
+**type:** style
+**scope:** dark theme (static/css/app.css)
+
+Apple-inspired dark pass (ref: apple.com/iphone-17-pro). User palette unchanged (#000000/#232324/#0070e2/#38383a/#f5f5f7 dark; #ffffff/#f5f5f7/#0070e2/#eeeef1/#232324 light).
+
+- Dark bg = plain static `#000000`: `[data-theme="dark"] .bg-scene` forced to `#000`, `::after` glow removed, `.blob`s `display:none`, dark body `#000`. Light theme keeps its soft animated scene.
+- Dark surfaces → Apple gray family: `--surface: rgba(29,29,31,0.68)`, `--surface-strong: rgba(44,44,46,0.92)`; 26px blur kept.
+- Dark buttons glassy: new dark token `--btn-neutral-glass: rgba(56,56,58,0.55)` (translucent + existing 18px backdrop blur); `.btn-primary` flattened to solid `#0070e2`, hover `--accent-strong`.
+- **Verified**: braces balanced; collectstatic --clear run BEFORE commit; served copy (read via `streaming_content` — WhiteNoiseFileResponse has NO `.content` attribute, that tripped the first check) contains every new rule; all 7 pages 200; cache auto-busts via static_v mtime.
+- **Remember**: static_v() busts browser cache, but the SERVED copy is the collected one — always run `manage.py collectstatic --noinput` after editing static/.
+
+---
+---
 ## c5b9f29 — 2026-09-08 (session V, bugfix)
 **type:** fix
 **scope:** static serving / whitenoise (settings + jinja + templates)
