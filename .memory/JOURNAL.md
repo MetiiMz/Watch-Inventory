@@ -1,6 +1,19 @@
 # Journal — TikoTime (Watch Inventory)
 
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
+
+## 2026-09-08 — DRF API v1 (`5af7b97`)
+
+- **New `inventory/api/` package** (1,082 lines): DRF 3.18 layer under **`/api/v1/`**, fully independent from the legacy `/api/*` views (which remain untouched for the current frontend).
+  - `fields.py` — Jalali date converter + Persian-num helpers reused from `inventory.utils`.
+  - `serializers.py` (495 l) — `Product/Sale/Payment/Repair/Tracking/SettingSerializer` porting every computed display field from `utils.py` dict builders (fa dates, weekday, availability/status fa+color, totals, paid_percent…).
+  - `views.py` (519 l) — `ModelViewSet`s (filtering, ordering, search, bulk-delete actions) delegating writes to the battle-tested legacy view functions so business rules exist in ONE place (transactional sale+receipt creation, stock flip, cascade deletes, id-restart rules).
+  - `urls.py` — DefaultRouter with `trailing_slash=''` (app convention; a 301 on POST would drop bodies).
+- **Key fixes found by smoke tests:**
+  - DRF default auth crashed (app has no `django.contrib.auth` by design) → `DEFAULT_AUTHENTICATION_CLASSES: []` + `UNAUTHENTICATED_USER: None` in settings.
+  - Legacy detail views were PUT-only; PATCH fell through to **delete** → `update()` normalizes method, `partial_update` merges PATCH into current object values before delegating (`_complete_partial`).
+- **Verified on temp DB copy:** full CRUD round-trip on all 5 resources; PATCH field-preservation per resource (sale buyer/phone/paid, payment name/amount, …); sale deposit → payment receipt created, settled flag correct; filters + pagination; all 8 pages 200; legacy API unchanged; `manage.py check` clean; existing 3 tests green.
+- **Going forward:** new frontend work should target `/api/v1/`; legacy `/api/*` can be retired once the frontend migrates.
 ## 2026-09-08 — Cleanup: legacy Flask removal + dead-code sweep (331defd)
 - **Removed:** `legacy_flask/` (app.py, database.py, reports.py, excel_io.py, run.sh/bat — ~2,900 lines), stale root `jalali.py` (superseded by `inventory/jalali.py`), old `tests/test_calendar_sale_deletion.py`, `.claude/PROGRESS.md`, stale `data/inventory.db` artifact.
 - **Dead code swept:** `parse_date_or_none` from inventory/utils.py; unused `import json` from products/repairs/tracking views; stale bugfix narrative from sales.py docstring. Pyflakes run beforehand; all removals grep-verified unreferenced.
