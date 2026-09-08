@@ -1,5 +1,8 @@
-"""URL configuration — routes identical to the legacy Flask app."""
-from django.urls import path
+"""URL configuration — routes identical to the legacy Flask app.
+
+/api/v1/ = لایه‌ی مستقل DRF (نسخه‌بندی‌شده)؛ /api/* = API فعلی فرانت‌اند.
+"""
+from django.urls import include, path
 
 from inventory import views
 
@@ -75,4 +78,7 @@ urlpatterns = [
     # settings
     path("api/settings", views.api_settings),
     path("api/settings/site-icon", views.api_settings_site_icon),
+
+    # DRF API v1 — لایه‌ی مستقل بک‌اند
+    path("api/v1/", include("inventory.api.urls")),
 ]
