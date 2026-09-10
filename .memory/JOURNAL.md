@@ -2,6 +2,20 @@
 
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
+## 2026-09-10 — Full test suite (`e7d6628`)
+
+- **147 tests / 10 modules** in the dedicated `tests/` directory (the established convention), all passing via `manage.py test tests`:
+  - `test_jalali.py` — g↔j anchors (Nowruz 1404/1405), round-trips, leap years, `fa_num`, `parse_jalali_date` (Persian/Latin digits, all separators, ISO, 8-digit, invalid → None).
+  - `test_utils.py` — `fa_date`/`fa_money`, tolerant parsers, phone normalization, `invoice_code`, all five `*_dict` builders incl. missing-product degradation.
+  - `test_service_products.py` / `test_service_sales.py` / `test_service_infra.py` — every service function: queryset filters/sort fallback, create/update validation with exact Persian messages, duplicate codes (case-insensitive), cash vs deposit flows, stock flip + restore, deposit-receipt creation + date sync, settlement sync, `add`/`settle-full`, status flows, bulk deletes.
+  - `test_dbhelpers_reports.py` — settings, brands (sorted), backup/restore/delete, `clear_database` on a throwaway sqlite file (data gone, ids restart at 1, settings kept), dashboard stats, monthly activity, brand breakdown (in-stock only).
+  - `test_services_misc.py` — calendar month grid (35 cells) + day detail, report validation, uploads (multipart + JSON base64 + ext/size rejections), real openpyxl export/import round-trip.
+  - `test_api_v1.py` — DRF endpoints: CRUD, native PATCH semantics, pagination, `summary` action, `{"error": ..., "ok": false}` contract, bulk-delete, 404 JSON.
+  - `test_compat_contract.py` — the byte-level legacy JSON shapes the frontend depends on (plain arrays, `ok(...)` envelopes, wrapped creates, `{items, summary}`, `next_invoice_code`, pages, 404s).
+- **Safety rule enforced by design:** tests never touch the real `data/db.sqlite3` — raw-sqlite helpers (`clear_database`, `backup_db`) run against `mock.patch`ed temp paths, because the Django test DB is in-memory and invisible to them.
+- **Lessons:** `override_settings` cannot affect `dbhelpers` module-level constants (patch the module attrs instead); first draft of the clear-test wrote to the real DB path — caught and rewritten before commit; restore always leaves a `pre_restore_*.db` safety copy (asserted, not assumed).
+- **Verified:** 147/147 pass, `check` clean, tree clean, no artifacts left in `data/backups/` (test-generated ones deleted).
+
 ## 2026-09-10 — API-first backend cleanup (`96687f8`)
 
 - **Old static/legacy API views deleted:** the entire function-based API in `inventory/views/` (products, sales, payments, repairs, tracking, calendar, shared, backups, exportimport, settings_api, dashboard_api, common — ~1,550 lines) is gone. `inventory/views/` now contains ONLY `pages.py` (the 8 HTML page shells).
