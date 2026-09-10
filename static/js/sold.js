@@ -72,10 +72,16 @@ function render() {
         <div class="p-name">${esc(s.product_name || "محصول حذف‌شده")}</div>
       </td>
       <td>
-        <div class="p-ref">${s.reference ? `<span class="code-pill" title="رفرنس">${esc(s.reference)}</span>` : ""}</div>
-        <div>${s.website_code ? `<span class="code-pill" title="کد انبار سایت">${esc(s.website_code)}</span> ` : ""}${s.office_code ? `<span class="code-pill" title="کد دفتر فروشگاه" style="background:var(--accent-soft);color:var(--accent)">${esc(s.office_code)}</span>` : ""}</div>
+        ${s.reference ? `<span class="code-pill" title="رفرنس">${esc(s.reference)}</span>` : '<span class="muted">—</span>'}
       </td>
-      <td>${esc(s.customer) || '<span class="muted">—</span>'}${s.customer_phone_fa ? `<div class="p-ref" dir="ltr" style="text-align:right">${s.customer_phone_fa}</div>` : ""}</td>
+      <td>
+        ${s.website_code ? `<span class="code-pill" title="کد انبار سایت">${esc(s.website_code)}</span>` : '<span class="muted">—</span>'}
+      </td>
+      <td>
+        ${s.office_code ? `<span class="code-pill" title="کد دفتر فروشگاه" style="background:var(--accent-soft);color:var(--accent)">${esc(s.office_code)}</span>` : '<span class="muted">—</span>'}
+      </td>
+      <td>${esc(s.customer) || '<span class="muted">—</span>'}</td>
+      <td class="muted" dir="ltr" style="text-align:right">${s.customer_phone_fa || '—'}</td>
       <td class="num" style="color:var(--green);font-weight:600">${s.final_price_display}</td>
       <td class="muted">${s.sale_date_fa}</td>
       <td>
