@@ -2,6 +2,17 @@
 
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
+## 2026-09-10 — API-first backend cleanup (`<commit>`)
+
+- **Old static/legacy API views deleted:** the entire function-based API in `inventory/views/` (products, sales, payments, repairs, tracking, calendar, shared, backups, exportimport, settings_api, dashboard_api, common — ~1,550 lines) is gone. `inventory/views/` now contains ONLY `pages.py` (the 8 HTML page shells).
+- **New service core — `inventory/api/services.py`:** every business rule (validation with the original Persian error messages, transactional sale+receipt creation, stock flip on sale/delete, cascade bulk deletes, settlement sync, invoice codes, image housekeeping, calendar/report/export logic) now lives in ONE module as plain functions raising `ApiError(status, message)`.
+- **`/api/v1/` is now the real backend:** all 5 ViewSets perform writes directly through the services (no more `_legacy` adapters, no more PUT-juggling / `_complete_partial` merging — PATCH is native). Added `exceptions.py` so `ApiError` renders as `{"error": ..., "ok": false}` with the right status.
+- **Frontend untouched:** the old `/api/*` routes remain via `inventory/api/compat.py` — thin adapters returning the EXACT legacy JSON shapes (`ok(...)` envelopes, wrapped `{product: ...}` creates, plain arrays, `{items, summary}` lists). Verified contract-by-contract against the JS (is_available, product_image, *_fa/*_display fields, res.path, res.deleted, next_invoice_code, error-toast shape).
+- **Verified:** 86/86 E2E smoke checks across BOTH layers on a temp DB (CRUD, deposit receipts, settle-full, PATCH-preservation, filters, pagination, calendar day/month, exports xlsx/csv, import template, upload multipart+JSON, backups create/download/delete, database clear + id-restart, all 8 pages, 404 shapes). 3/3 Django tests pass, `check` clean, migrations in sync, real DB read smoke OK (7 products through both APIs).
+- **Real bug found & fixed by the smoke run:** compat `api_brands` initially only allowed GET — brand-add POST (which the frontend sends) would 405. The old code's quirks were verified against a stash of the old code and preserved exactly (deposit-on-sold-out accepted, `add` doesn't flip `sale.is_settled`, `unpaid` count semantics).
+- **English docstrings everywhere:** every class/function in `inventory/api/` (services, serializers, views, compat, exceptions, fields, urls) and `tikotime/urls.py` now documents purpose and behavior in English.
+
+---
 ## 2026-09-08 — DRF API v1 (`5af7b97`)
 
 - **New `inventory/api/` package** (1,082 lines): DRF 3.18 layer under **`/api/v1/`**, fully independent from the legacy `/api/*` views (which remain untouched for the current frontend).

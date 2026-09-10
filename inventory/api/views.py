@@ -1,123 +1,48 @@
 # -*- coding: utf-8 -*-
-"""ویوهای API نسخه‌ی ۱ — لایه‌ی مستقل از فرانت‌اند.
+"""Versioned API views — Django REST Framework under ``/api/v1/``.
 
-معماری:
-- خواندن (list/retrieve): DRF بومی — ViewSet + فیلتر/مرتب‌سازی/صفحه‌بندی + سریالایزر.
-- نوشتن (create/update/delete): از منطق تراکنشی موجود (inventory.views) از طریق
-  آداپتور `_legacy` استفاده می‌شود تا قواعد کسب‌وکار فقط یک‌جا تعریف شوند؛
-  پاسخ موفق با سریالایزر DRF بازسازی می‌شود و خطاها به‌صورت استاندارد DRF
-  (400/404 با body["detail"]) برمی‌گردند.
-- endpoint های زیرساختی (بکاپ، تقویم، تنظیمات، آپلود، خروجی/ورودی): پاس‌ترو.
+Architecture (the backend's main core):
+
+* **Reads** go straight through the QuerySets built in
+  :mod:`inventory.api.services` and are serialized with DRF serializers.
+* **Writes** call the transactional service functions so business rules
+  (deposit receipts, stock flips, settlement sync, cascade deletes,
+  invoice codes) exist in exactly one place.
+* :class:`ApiError` raised by a service is rendered as a standard DRF
+  error — ``{"error": "<persian message>"}`` with the original status
+  code — which is also the shape ``static/js/app.js`` displays.
+* Legacy-shape endpoints (same JSON as the old function-based views) are
+  thin adapters in :mod:`inventory.api.compat`; they call the very same
+  service functions.
 """
-import json
+import os
+import sqlite3
+from urllib.parse import quote
 
+from django.db import close_old_connections
 from django.db.models import Count, Q
-from rest_framework import exceptions, status, viewsets
+from django.http import FileResponse
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from inventory.models import Payment, Product, Repair, Sale, Tracking
-from inventory.views import (
-    backups as legacy_backups,
-    calendar as legacy_calendar,
-    dashboard_api as legacy_dashboard,
-    exportimport as legacy_exportimport,
-    payments as legacy_payments,
-    products as legacy_products,
-    repairs as legacy_repairs,
-    sales as legacy_sales,
-    settings_api as legacy_settings,
-    shared as legacy_shared,
-    tracking as legacy_tracking,
+from inventory.api import services
+from inventory.api.serializers import (
+    PaymentSerializer, ProductSerializer, RepairSerializer, SaleSerializer,
+    TrackingSerializer,
 )
-
-from .serializers import (
-    PaymentAddSerializer, PaymentSerializer, ProductSerializer,
-    RepairSerializer, SaleSerializer, SaleWriteSerializer, TrackingSerializer,
+from inventory.dbhelpers import (
+    backup_db, clear_database, count_records, delete_backup, list_backups,
+    restore_db,
 )
-
-
-class ApiError(exceptions.APIException):
-    """خطای لایه‌ی منطق — با همان وضعیت و پیام API قدیمی."""
-
-    def __init__(self, message, code):
-        super().__init__(message)
-        self.status_code = code
-
-
-def _legacy(fn, request, *args):
-    """اجرا‌ی ویوی تراکنشی موجود و تبدیل پاسخش به استاندارد DRF."""
-    resp = fn(request, *args)
-    if resp.status_code >= 400:
-        try:
-            msg = json.loads(resp.content).get("error", "")
-        except (ValueError, AttributeError):
-            msg = ""
-        raise ApiError(msg or f"خطای سرور ({resp.status_code})", resp.status_code)
-    try:
-        return json.loads(resp.content)
-    except ValueError:
-        return {}
-
-
-def _strip_ok(data):
-    return {k: v for k, v in data.items() if k != "ok"}
-
-
-def _complete_partial(request, obj, serializer_class, writable=None):
-    """ویوهای قدیمی فقط PUT کامل می‌پذیرند؛ PATCH جزئی را با مقادیر فعلی
-    شیء کامل می‌کنیم تا معنای استاندارد PATCH حفظ شود.
-
-    serializer_class فقط-خواندنی است (Sale/Payment) یا فیلدهای نمایشی دارد؛
-    برای فیلدهای نوشتنی که در سریالایزر خواندنی‌اند، نگاشت «writable» مقدار
-    فعلی را مستقیم از مدل می‌خواند — وگرنه PUT قدیمی مقدار خالی می‌گرفت.
-    """
-    provided = request.data if isinstance(request.data, dict) else {}
-    ser = serializer_class(obj)
-    merged = {
-        name: ser.data[name]
-        for name, field in ser.fields.items()
-        if not getattr(field, "read_only", False) and name not in provided
-    }
-    for key, getter in (writable or {}).items():
-        if key not in provided and key not in merged:
-            merged[key] = getter(obj)
-    request._request._body = json.dumps(
-        {**merged, **provided}, ensure_ascii=False).encode("utf-8")
-
-
-# فیلدهای نوشتنی که در SaleSerializer فقط-خواندنی‌اند — کلیدهای PUT قدیمی
-_SALE_WRITABLE = {
-    "product_id": lambda o: o.product_id,
-    "sale_price": lambda o: o.sale_price,
-    "discount_price": lambda o: o.final_price,
-    "sale_date": lambda o: o.sale_date or "",
-    "customer": lambda o: o.customer or "",
-    "customer_phone": lambda o: o.customer_phone or "",
-    "sale_type": lambda o: o.sale_type or "person",
-    "payment_type": lambda o: o.payment_type or "cash",
-    "paid_cash": lambda o: o.paid_cash or 0,
-    "paid_pos": lambda o: o.paid_pos or 0,
-    "paid_card2card": lambda o: o.paid_card2card or 0,
-    "invoice_code": lambda o: getattr(o, "invoice_code", "") or "",
-    "notes": lambda o: o.notes or "",
-}
-
-# فیلدهای نوشتنی که در PaymentSerializer فقط-خواندنی‌اند
-_PAYMENT_WRITABLE = {
-    "product_name": lambda o: o.product_name or "",
-    "customer_name": lambda o: o.customer_name or "",
-    "customer_phone": lambda o: o.customer_phone or "",
-    "total_amount": lambda o: o.total_amount or 0,
-    "paid_amount": lambda o: o.paid_amount or 0,
-    "pay_date": lambda o: o.pay_date or "",
-    "notes": lambda o: o.notes or "",
-}
+from inventory.models import Product
 
 
 class DefaultPagination(PageNumberPagination):
+    """Page-number pagination (``?page`` / ``?page_size``, default 100)."""
+
     page_size = 100
     page_size_query_param = "page_size"
     max_page_size = 1000
@@ -125,58 +50,55 @@ class DefaultPagination(PageNumberPagination):
 
 # ---------------------------------------------------------------- products
 class ProductViewSet(viewsets.ModelViewSet):
-    """CRUD محصولات. فیلترها: q، brand، available، ordering."""
+    """Inventory CRUD.
+
+    Filters: ``q``, ``brand``, ``status`` (``available``/``unavailable``),
+    ``date_from``/``date_to``, ``sort`` + ``dir``, ``ordering``.
+    """
 
     serializer_class = ProductSerializer
     pagination_class = DefaultPagination
 
     def get_queryset(self):
-        qs = Product.objects.all()
         p = self.request.query_params
-        q = (p.get("q") or "").strip()
-        if q:
-            qs = qs.filter(Q(name__icontains=q) | Q(office_code__icontains=q)
-                           | Q(website_code__icontains=q))
-        brand = (p.get("brand") or "").strip()
-        if brand:
-            qs = qs.filter(brand=brand)
-        avail = (p.get("available") or "").lower()
-        if avail in ("1", "true"):
-            qs = qs.filter(available=True)
-        elif avail in ("0", "false"):
-            qs = qs.filter(available=False)
+        qs = services.product_queryset(p)
         ordering = (p.get("ordering") or "").strip()
         allowed = {"id", "name", "purchase_price", "sale_price", "purchase_date"}
         if ordering:
             fields = [f for f in ordering.split(",") if f.lstrip("-") in allowed]
             if fields:
                 return qs.order_by(*fields)
-        return qs.order_by("-id")  # ترتیب پایدار برای صفحه‌بندی
+        return qs.order_by("-id")  # stable order for pagination
 
     def create(self, request, *args, **kwargs):
-        data = _legacy(legacy_products.api_products, request)
-        obj = Product.objects.get(id=data["product"]["id"])
-        return Response(self.get_serializer(obj).data, status=status.HTTP_201_CREATED)
+        """POST /api/v1/products — validated/created by the service layer."""
+        product = services.create_product(request.data)
+        return Response(
+            self.get_serializer(product).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        _complete_partial(request, obj, ProductSerializer)
-        request.method = "PUT"  # ویوی قدیمی فقط PUT را ویرایش می‌داند
-        _legacy(legacy_products.api_product_detail, request, obj.id)
-        obj.refresh_from_db()
-        return Response(self.get_serializer(obj).data)
+        """PUT/PATCH /api/v1/products/<id>/ — partial-aware product edit."""
+        product = self.get_object()
+        services.update_product(
+            product, request.data,
+            partial=request.method == "PATCH")
+        product.refresh_from_db()
+        return Response(self.get_serializer(product).data)
 
     def destroy(self, request, *args, **kwargs):
-        obj = self.get_object()
-        _legacy(legacy_products.api_product_detail, request, obj.id)
+        """DELETE /api/v1/products/<id>/ — deletes the watch and its image."""
+        services.delete_product(self.get_object())
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["post"], url_path="bulk-delete")
     def bulk_delete(self, request):
-        return Response(_strip_ok(_legacy(legacy_products.api_products_bulk_delete, request)))
+        """POST /api/v1/products/bulk-delete — ``{"ids": [...]}``."""
+        deleted = services.bulk_delete_products((request.data or {}).get("ids"))
+        return Response({"deleted": deleted})
 
     @action(detail=False, methods=["get"])
     def summary(self, request):
+        """GET /api/v1/products/summary — total and in-stock counts."""
         agg = Product.objects.aggregate(
             count=Count("id"),
             available=Count("id", filter=Q(available=True)),
@@ -186,334 +108,389 @@ class ProductViewSet(viewsets.ModelViewSet):
 
 # ---------------------------------------------------------------- sales
 class SaleViewSet(viewsets.ModelViewSet):
-    """فروش‌ها. فیلترها: q (مشتری/فاکتور)، settled، product_id، ordering."""
+    """Sales CRUD (cash and deposit).
+
+    Filters: ``q``, ``sale_type``, ``pay_method``, ``date_from``/``date_to``,
+    ``sort`` + ``dir``, ``ordering``, plus ``next_code=1`` on the list for
+    an invoice-code preview.
+    """
 
     serializer_class = SaleSerializer
     pagination_class = DefaultPagination
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
-        qs = Sale.objects.select_related("product").all()
-        p = self.request.query_params
-        q = (p.get("q") or "").strip()
-        if q:
-            qs = qs.filter(Q(customer__icontains=q) | Q(invoice_code__icontains=q))
-        settled = (p.get("settled") or "").lower()
-        if settled in ("1", "true"):
-            qs = qs.filter(is_settled=True)
-        elif settled in ("0", "false"):
-            qs = qs.filter(is_settled=False)
-        pid = p.get("product_id")
-        if pid:
-            qs = qs.filter(product_id=pid)
-        ordering = (p.get("ordering") or "").strip()
-        allowed = {"id", "sale_date", "sale_price", "created_at"}
-        if ordering:
-            fields = [f for f in ordering.split(",") if f.lstrip("-") in allowed]
-            if fields:
-                return qs.order_by(*fields)
-        return qs.order_by("-id")  # ترتیب پایدار برای صفحه‌بندی
+        return services.sale_queryset(self.request.query_params)
+
+    def list(self, request, *args, **kwargs):
+        if (request.query_params.get("next_code") or "").strip():
+            return Response({"next_invoice_code": services.next_invoice_code()})
+        return super().list(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
-        SaleWriteSerializer(data=request.data).is_valid(raise_exception=True)
-        data = _legacy(legacy_sales.api_sales, request)
-        obj = Sale.objects.get(id=data["sale"]["id"])
-        return Response(self.get_serializer(obj).data, status=status.HTTP_201_CREATED)
+        """POST /api/v1/sales — transactional sale + deposit receipt."""
+        sale = services.create_sale(request.data)
+        return Response(
+            self.get_serializer(sale).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        SaleWriteSerializer(data=request.data, partial=True).is_valid(raise_exception=True)
-        _complete_partial(request, obj, SaleSerializer, writable=_SALE_WRITABLE)
-        request.method = "PUT"  # ویوی قدیمی فقط PUT را ویرایش می‌داند
-        _legacy(legacy_sales.api_sale_detail, request, obj.id)
-        obj.refresh_from_db()
-        return Response(self.get_serializer(obj).data)
+        """PUT/PATCH /api/v1/sales/<id>/ — partial-aware sale edit."""
+        sale = self.get_object()
+        services.update_sale(sale, request.data)
+        sale.refresh_from_db()
+        return Response(self.get_serializer(sale).data)
 
     def destroy(self, request, *args, **kwargs):
-        obj = self.get_object()
-        _legacy(legacy_sales.api_sale_detail, request, obj.id)
+        """DELETE /api/v1/sales/<id>/ — the watch becomes available again."""
+        services.delete_sale(self.get_object())
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["post"], url_path="bulk-delete")
     def bulk_delete(self, request):
-        return Response(_strip_ok(_legacy(legacy_sales.api_sales_bulk_delete, request)))
+        """POST /api/v1/sales/bulk-delete — ``{"ids": [...]}``."""
+        deleted = services.bulk_delete_sales((request.data or {}).get("ids"))
+        return Response({"deleted": deleted})
 
 
 # ---------------------------------------------------------------- payments
-class PaymentViewSet(viewsets.GenericViewSet):
-    """فقره‌های پرداخت. فیلترها: sale_id، settled، q. تغییرها از منطق موجود."""
+class PaymentViewSet(viewsets.ModelViewSet):
+    """Payment records (deposit receipts and standalone installments).
+
+    Filters: ``status`` (``unpaid``/``paid``), ``q``, ``sale_id``,
+    ``ordering``.
+    """
 
     serializer_class = PaymentSerializer
     pagination_class = DefaultPagination
 
     def get_queryset(self):
-        qs = Payment.objects.select_related("sale__product").all()
-        p = self.request.query_params
-        sale_id = p.get("sale_id")
+        qs = services.payment_queryset(self.request.query_params)
+        sale_id = self.request.query_params.get("sale_id")
         if sale_id:
             qs = qs.filter(sale_id=sale_id)
-        q = (p.get("q") or "").strip()
-        if q:
-            qs = qs.filter(Q(sale__customer__icontains=q)
-                           | Q(sale__invoice_code__icontains=q))
-        return qs.order_by("-id")
-
-    def list(self, request, *args, **kwargs):
-        page = self.paginate_queryset(self.get_queryset())
-        return self.get_paginated_response(self.get_serializer(page, many=True).data)
-
-    def retrieve(self, request, *args, **kwargs):
-        return Response(self.get_serializer(self.get_object()).data)
+        return qs
 
     def create(self, request, *args, **kwargs):
-        data = _legacy(legacy_payments.api_payments, request)
-        obj = Payment.objects.get(id=data["payment"]["id"])
-        return Response(self.get_serializer(obj).data, status=status.HTTP_201_CREATED)
+        """POST /api/v1/payments — create a standalone payment record."""
+        payment = services.create_payment(request.data)
+        return Response(
+            self.get_serializer(payment).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        _complete_partial(request, obj, PaymentSerializer, writable=_PAYMENT_WRITABLE)
-        request.method = "PUT"  # ویوی قدیمی فقط PUT را ویرایش می‌داند
-        _legacy(legacy_payments.api_payment_detail, request, obj.id)
-        obj.refresh_from_db()
-        return Response(self.get_serializer(obj).data)
-
-    partial_update = update  # PATCH همان PUT است (پارشال با _complete_partial)
+        """PUT/PATCH /api/v1/payments/<id>/ — re-evaluates settlement."""
+        payment = self.get_object()
+        services.update_payment(
+            payment, request.data,
+            partial=request.method == "PATCH")
+        payment.refresh_from_db()
+        return Response(self.get_serializer(payment).data)
 
     def destroy(self, request, *args, **kwargs):
-        obj = self.get_object()
-        _legacy(legacy_payments.api_payment_detail, request, obj.id)
+        """DELETE /api/v1/payments/<id>/."""
+        services.delete_payment(self.get_object())
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"])
     def add(self, request, pk=None):
-        PaymentAddSerializer(data=request.data).is_valid(raise_exception=True)
-        data = _legacy(legacy_payments.api_payment_add, request, int(pk))
-        obj = Payment.objects.get(id=data["payment"]["id"])
-        return Response(self.get_serializer(obj).data)
+        """POST /api/v1/payments/<id>/add — pay an installment amount."""
+        payment = services.add_payment(self.get_object(), request.data)
+        return Response(self.get_serializer(payment).data)
 
     @action(detail=True, methods=["post"], url_path="settle-full")
     def settle_full(self, request, pk=None):
-        _legacy(legacy_payments.api_payment_settle_full, request, int(pk))
-        obj = Payment.objects.get(id=int(pk))
-        return Response(self.get_serializer(obj).data)
+        """POST /api/v1/payments/<id>/settle-full — settle the whole balance."""
+        payment = services.settle_payment_full(self.get_object())
+        return Response(self.get_serializer(payment).data)
 
     @action(detail=False, methods=["post"], url_path="bulk-delete")
     def bulk_delete(self, request):
-        return Response(_strip_ok(_legacy(legacy_payments.api_payments_bulk_delete, request)))
+        """POST /api/v1/payments/bulk-delete — ``{"ids": [...]}``."""
+        deleted = services.bulk_delete_payments((request.data or {}).get("ids"))
+        return Response({"deleted": deleted})
 
 
 # ---------------------------------------------------------------- repairs
-class RepairViewSet(viewsets.GenericViewSet):
-    """تعمیرات. فیلترها: status، q."""
+class RepairViewSet(viewsets.ModelViewSet):
+    """Repair tickets. Filters: ``status``, ``q``, ``ordering``."""
 
     serializer_class = RepairSerializer
     pagination_class = DefaultPagination
 
     def get_queryset(self):
-        qs = Repair.objects.all()
-        p = self.request.query_params
-        st = (p.get("status") or "").strip()
-        if st:
-            qs = qs.filter(status=st)
-        q = (p.get("q") or "").strip()
-        if q:
-            qs = qs.filter(Q(customer_name__icontains=q)
-                           | Q(device_name__icontains=q)
-                           | Q(problem__icontains=q))
-        return qs.order_by("-id")
-
-    def list(self, request, *args, **kwargs):
-        page = self.paginate_queryset(self.get_queryset())
-        return self.get_paginated_response(self.get_serializer(page, many=True).data)
-
-    def retrieve(self, request, *args, **kwargs):
-        return Response(self.get_serializer(self.get_object()).data)
+        return services.repair_queryset(self.request.query_params)
 
     def create(self, request, *args, **kwargs):
-        data = _legacy(legacy_repairs.api_repairs, request)
-        obj = Repair.objects.get(id=data["repair"]["id"])
-        return Response(self.get_serializer(obj).data, status=status.HTTP_201_CREATED)
+        """POST /api/v1/repairs."""
+        repair = services.create_repair(request.data)
+        return Response(
+            self.get_serializer(repair).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        _complete_partial(request, obj, RepairSerializer)
-        request.method = "PUT"  # ویوی قدیمی فقط PUT را ویرایش می‌داند
-        _legacy(legacy_repairs.api_repair_detail, request, obj.id)
-        obj.refresh_from_db()
-        return Response(self.get_serializer(obj).data)
-
-    partial_update = update  # PATCH همان PUT است (پارشال با _complete_partial)
+        """PUT/PATCH /api/v1/repairs/<id>/."""
+        repair = self.get_object()
+        services.update_repair(
+            repair, request.data,
+            partial=request.method == "PATCH")
+        repair.refresh_from_db()
+        return Response(self.get_serializer(repair).data)
 
     def destroy(self, request, *args, **kwargs):
-        obj = self.get_object()
-        _legacy(legacy_repairs.api_repair_detail, request, obj.id)
+        """DELETE /api/v1/repairs/<id>/ — removes the image file too."""
+        services.delete_repair(self.get_object())
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"], url_path="set-status")
     def set_status(self, request, pk=None):
-        _legacy(legacy_repairs.api_repair_status, request, int(pk))
-        obj = Repair.objects.get(id=int(pk))
-        return Response(self.get_serializer(obj).data)
+        """POST /api/v1/repairs/<id>/set-status — status flow + return date."""
+        repair = services.set_repair_status(self.get_object(), request.data)
+        return Response(self.get_serializer(repair).data)
 
     @action(detail=False, methods=["post"], url_path="bulk-delete")
     def bulk_delete(self, request):
-        return Response(_strip_ok(_legacy(legacy_repairs.api_repairs_bulk_delete, request)))
+        """POST /api/v1/repairs/bulk-delete — ``{"ids": [...]}``."""
+        deleted = services.bulk_delete_repairs((request.data or {}).get("ids"))
+        return Response({"deleted": deleted})
 
 
 # ---------------------------------------------------------------- tracking
-class TrackingViewSet(viewsets.GenericViewSet):
-    """پیگیری‌ها. فیلترها: status، q."""
+class TrackingViewSet(viewsets.ModelViewSet):
+    """Order tracking. Filters: ``status``, ``q``, ``ordering``."""
 
     serializer_class = TrackingSerializer
     pagination_class = DefaultPagination
 
     def get_queryset(self):
-        qs = Tracking.objects.all()
-        p = self.request.query_params
-        st = (p.get("status") or "").strip()
-        if st:
-            qs = qs.filter(status=st)
-        q = (p.get("q") or "").strip()
-        if q:
-            qs = qs.filter(Q(customer_name__icontains=q)
-                           | Q(item_name__icontains=q)
-                           | Q(item_code__icontains=q))
-        return qs.order_by("-id")
-
-    def list(self, request, *args, **kwargs):
-        page = self.paginate_queryset(self.get_queryset())
-        return self.get_paginated_response(self.get_serializer(page, many=True).data)
-
-    def retrieve(self, request, *args, **kwargs):
-        return Response(self.get_serializer(self.get_object()).data)
+        return services.tracking_queryset(self.request.query_params)
 
     def create(self, request, *args, **kwargs):
-        data = _legacy(legacy_tracking.api_tracking, request)
-        obj = Tracking.objects.get(id=data["tracking"]["id"])
-        return Response(self.get_serializer(obj).data, status=status.HTTP_201_CREATED)
+        """POST /api/v1/tracking."""
+        tracking = services.create_tracking(request.data)
+        return Response(
+            self.get_serializer(tracking).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        _complete_partial(request, obj, TrackingSerializer)
-        request.method = "PUT"  # ویوی قدیمی فقط PUT را ویرایش می‌داند
-        _legacy(legacy_tracking.api_tracking_detail, request, obj.id)
-        obj.refresh_from_db()
-        return Response(self.get_serializer(obj).data)
-
-    partial_update = update  # PATCH همان PUT است (پارشال با _complete_partial)
+        """PUT/PATCH /api/v1/tracking/<id>/."""
+        tracking = self.get_object()
+        services.update_tracking(
+            tracking, request.data,
+            partial=request.method == "PATCH")
+        tracking.refresh_from_db()
+        return Response(self.get_serializer(tracking).data)
 
     def destroy(self, request, *args, **kwargs):
-        obj = self.get_object()
-        _legacy(legacy_tracking.api_tracking_detail, request, obj.id)
+        """DELETE /api/v1/tracking/<id>/ — removes the image file too."""
+        services.delete_tracking(self.get_object())
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["post"], url_path="bulk-delete")
     def bulk_delete(self, request):
-        return Response(_strip_ok(_legacy(legacy_tracking.api_tracking_bulk_delete, request)))
+        """POST /api/v1/tracking/bulk-delete — ``{"ids": [...]}``."""
+        deleted = services.bulk_delete_tracking((request.data or {}).get("ids"))
+        return Response({"deleted": deleted})
 
 
 # ---------------------------------------------------------------- infra
-# endpoint های زیرساختی — پاس‌ترو به منطق موجود (همان شکل پاسخ ok(...))
 class BrandsView(APIView):
+    """GET lists brands; POST adds one (``{name}``)."""
+
     def get(self, request):
-        return legacy_shared.api_brands(request)
+        return Response({"ok": True, "brands": services.brands_list()})
 
     def post(self, request):
-        return legacy_shared.api_brands(request)
+        services.brands_add(request.data or {})
+        return Response({"ok": True})
 
 
 class BrandsDeleteView(APIView):
+    """POST /brands/delete — remove a brand (``{name}``)."""
+
     def post(self, request):
-        return legacy_shared.api_brands_delete(request)
+        services.brands_delete(request.data or {})
+        return Response({"ok": True})
 
 
 class SettingsView(APIView):
+    """GET returns store settings; POST persists the whitelisted keys."""
+
     def get(self, request):
-        return legacy_settings.api_settings(request)
+        return Response({"ok": True, **services.site_settings()})
 
     def post(self, request):
-        return legacy_settings.api_settings(request)
+        services.save_settings(request.data or {})
+        return Response({"ok": True})
 
 
 class SiteIconView(APIView):
+    """POST /settings/site-icon — ``{icon: "<filename>"}``."""
+
     def post(self, request):
-        return legacy_settings.api_settings_site_icon(request)
-
-
-class BackupsView(APIView):
-    def get(self, request):
-        return legacy_backups.api_backups(request)
-
-
-class BackupCreateView(APIView):
-    def post(self, request):
-        return legacy_backups.api_backups_create(request)
-
-
-class BackupUploadView(APIView):
-    def post(self, request):
-        return legacy_backups.api_backups_upload(request)
-
-
-class BackupRestoreView(APIView):
-    def post(self, request):
-        return legacy_backups.api_backups_restore(request)
-
-
-class BackupDeleteView(APIView):
-    def post(self, request):
-        return legacy_backups.api_backups_delete(request)
-
-
-class BackupDownloadView(APIView):
-    def get(self, request, fname):
-        return legacy_backups.api_backups_download(request, fname)
-
-
-class DatabaseInfoView(APIView):
-    def get(self, request):
-        return legacy_backups.api_database_info(request)
-
-
-class DatabaseClearView(APIView):
-    def post(self, request):
-        return legacy_backups.api_database_clear(request)
-
-
-class CalendarView(APIView):
-    def get(self, request):
-        return legacy_calendar.api_calendar(request)
-
-
-class CalendarDayView(APIView):
-    def get(self, request):
-        return legacy_calendar.api_calendar_day(request)
-
-
-class MonthlyActivityView(APIView):
-    def get(self, request):
-        return legacy_dashboard.api_monthly_activity(request)
+        icon = services.set_site_icon((request.data or {}).get("icon"))
+        return Response({"ok": True, "icon": icon})
 
 
 class UploadView(APIView):
+    """POST image/icon upload (JSON base64 or multipart) → ``{path}``."""
+
     def post(self, request):
-        return legacy_shared.api_upload(request)
+        return Response({"ok": True, "path": services.save_upload(request)})
 
 
-class ImportProductsView(APIView):
-    def post(self, request):
-        return legacy_exportimport.api_import_products(request)
+class CalendarView(APIView):
+    """GET /calendar?jy=&jm= — one Jalali month laid out on the grid."""
 
-
-class ImportTemplateView(APIView):
     def get(self, request):
-        return legacy_exportimport.api_import_template(request)
+        data = services.calendar_month(
+            request.query_params.get("jy"), request.query_params.get("jm"))
+        return Response({"ok": True, **data})
+
+
+class CalendarDayView(APIView):
+    """GET /calendar/day?date=YYYY-MM-DD — full detail of one day."""
+
+    def get(self, request):
+        data = services.calendar_day(request.query_params.get("date"))
+        return Response({"ok": True, **data})
+
+
+class MonthlyActivityView(APIView):
+    """GET /reports/monthly-activity?year=<jy> — 12 months for the chart."""
+
+    def get(self, request):
+        year, months = services.monthly_activity(request.query_params.get("year"))
+        return Response({"ok": True, "year": year, "months": months})
 
 
 class ExportView(APIView):
+    """GET /export/<kind>.<fmt> — Excel/CSV download (kind×fmt validated)."""
+
     def get(self, request, kind, fmt):
-        return legacy_exportimport.export_file(request, kind, fmt)
+        path, name = services.export_data_file(kind, fmt)
+        mime = ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                if fmt == "xlsx" else "text/csv")
+        quoted = quote(name)
+        resp = FileResponse(open(path, "rb"), content_type=mime)
+        resp["Content-Disposition"] = (
+            f"attachment; filename=\"{quoted}\"; filename*=UTF-8''{quoted}")
+        return resp
 
 
+class ImportProductsView(APIView):
+    """POST product import (multipart ``file`` + optional ``update_existing``)."""
 
+    def post(self, request):
+        f = request.FILES.get("file")
+        if not f or not f.name:
+            raise services.ApiError(400, "فایلی انتخاب نشده است")
+        update_existing = request.POST.get("update_existing") == "1"
+        stats, errors = services.import_products_file(f, update_existing)
+        return Response({"ok": True, "stats": stats, "errors": errors})
+
+
+class ImportTemplateView(APIView):
+    """GET /import/template — the Excel import template download."""
+
+    def get(self, request):
+        path, name = services.import_template_file()
+        quoted = quote(name)
+        resp = FileResponse(
+            open(path, "rb"),
+            content_type="application/vnd.openxmlformats-officedocument"
+                         ".spreadsheetml.sheet")
+        resp["Content-Disposition"] = (
+            f"attachment; filename=\"{quoted}\"; filename*=UTF-8''{quoted}")
+        return resp
+
+
+class BackupsView(APIView):
+    """GET lists available database backups."""
+
+    def get(self, request):
+        return Response({"ok": True, "backups": list_backups()})
+
+
+class BackupCreateView(APIView):
+    """POST creates a database backup → ``{name}``."""
+
+    def post(self, request):
+        close_old_connections()
+        target = backup_db()
+        return Response({"ok": True, "name": os.path.basename(target)})
+
+
+class BackupUploadView(APIView):
+    """POST uploads a ``.db`` backup file for later restore."""
+
+    def post(self, request):
+        from django.conf import settings as dj_settings
+        f = request.FILES.get("file")
+        if not f or not f.name:
+            raise services.ApiError(400, "فایلی انتخاب نشده است")
+        fname = os.path.basename(f.name)
+        if not fname.endswith(".db"):
+            fname += ".db"
+        backup_dir = str(dj_settings.BACKUP_DIR)
+        os.makedirs(backup_dir, exist_ok=True)
+        target = os.path.join(backup_dir, fname)
+        with open(target, "wb") as out:
+            for chunk in f.chunks():
+                out.write(chunk)
+        try:
+            conn = sqlite3.connect(target)
+            conn.execute("SELECT COUNT(*) FROM products")
+            conn.close()
+        except sqlite3.Error:
+            os.remove(target)
+            raise services.ApiError(
+                400, "فایل انتخاب‌شده یک نسخه‌ی پشتیبان معتبر TikoTime نیست")
+        return Response({"ok": True, "name": fname})
+
+
+class BackupRestoreView(APIView):
+    """POST restores a backup (``{name}``); auto-backs up first."""
+
+    def post(self, request):
+        close_old_connections()
+        good, err = restore_db((request.data or {}).get("name"))
+        if not good:
+            raise services.ApiError(400, err)
+        return Response({"ok": True})
+
+
+class BackupDeleteView(APIView):
+    """POST deletes a backup file (``{name}``)."""
+
+    def post(self, request):
+        good, err = delete_backup((request.data or {}).get("name"))
+        if not good:
+            raise services.ApiError(400, err)
+        return Response({"ok": True})
+
+
+class BackupDownloadView(APIView):
+    """GET /backups/download/<fname> — attachment download."""
+
+    def get(self, request, fname):
+        from django.conf import settings as dj_settings
+        safe = os.path.basename(fname)
+        path = os.path.join(str(dj_settings.BACKUP_DIR), safe)
+        if not os.path.isfile(path):
+            raise services.ApiError(404, "یافت نشد")
+        resp = FileResponse(open(path, "rb"), content_type="application/octet-stream")
+        resp["Content-Disposition"] = f'attachment; filename="{safe}"'
+        return resp
+
+
+class DatabaseInfoView(APIView):
+    """GET /database/info — per-table record counts (clear preview)."""
+
+    def get(self, request):
+        return Response({"ok": True, "counts": count_records()})
+
+
+class DatabaseClearView(APIView):
+    """POST /database/clear — wipe data for a new period (auto backup first)."""
+
+    def post(self, request):
+        close_old_connections()
+        counts = clear_database()
+        return Response({"ok": True, "cleared": counts})

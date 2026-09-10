@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
-"""سریالایزرهای DRF — شکل داده‌ی API نسخه‌ی ۱.
+"""DRF serializers — the data shape of the versioned API under ``/api/v1/``.
 
-فیلدهای محاسباتی نمایشی (…_fa، …_display، …_color) دقیقاً با کلیدهای
-dict-builder های inventory/utils.py یکی هستند تا مهاجرت فرانت‌اند آسان باشد.
+Only *output* is serialized here.  Input validation lives in
+:mod:`inventory.api.services` (the single source of truth for business
+rules), so every API layer validates identically.
+
+Computed display fields (``*_fa``, ``*_display``, ``*_color``) carry the
+same names and values the frontend already consumes, so a client can
+switch between the versioned API and the legacy-shape endpoints without
+remapping anything.
 """
 from rest_framework import serializers
 
-from inventory.jalali import fa_num, parse_jalali_date
+from inventory.jalali import fa_num
 from inventory.models import Payment, Product, Repair, Sale, Tracking
 from inventory.utils import (
     SALE_TYPE_FA, STATUS_COLOR, STATUS_FA, TRACKING_STATUS_COLOR,
@@ -18,8 +24,16 @@ from .fields import JalaliDateField
 
 # ---------------------------------------------------------------- products
 class ProductSerializer(serializers.ModelSerializer):
-    """همان شکل product_dict — خواندنی و نوشتنی."""
-    available = serializers.BooleanField(required=False)
+    """One inventory watch.
+
+    Mirrors ``utils.product_dict``: Jalali date/price display fields,
+    per-unit profit, and the ``available`` stock flag.  ``available`` is
+    read-only because stock is derived from sales (creating a sale flips
+    the watch out of stock; deleting the sale restores it).
+    """
+
+    available = serializers.BooleanField(read_only=True)
+    is_available = serializers.SerializerMethodField()
     available_int = serializers.SerializerMethodField()
     purchase_date = JalaliDateField(required=False, allow_blank=True, allow_null=True)
     purchase_date_fa = serializers.SerializerMethodField()
@@ -40,9 +54,9 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id", "name", "reference", "office_code", "website_code", "brand",
-            "purchase_price", "sale_price", "available", "available_int",
-            "supplier", "purchase_date", "purchase_type", "notes", "image",
-            "created_at", "updated_at",
+            "purchase_price", "sale_price", "available", "is_available",
+            "available_int", "supplier", "purchase_date", "purchase_type",
+            "notes", "image", "created_at", "updated_at",
             "purchase_date_fa", "purchase_date_weekday",
             "purchase_price_display", "sale_price_display",
             "profit_per_unit", "profit_per_unit_display",
@@ -50,7 +64,11 @@ class ProductSerializer(serializers.ModelSerializer):
             "total_sale_value", "total_sale_value_display",
             "availability_fa",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "available", "created_at", "updated_at"]
+
+    def get_is_available(self, obj):
+        """Boolean stock flag (alias of ``available`` used by the frontend)."""
+        return bool(obj.available)
 
     def get_available_int(self, obj):
         return 1 if obj.available else 0
@@ -88,35 +106,16 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_availability_fa(self, obj):
         return "موجود" if obj.available else "ناموجود"
 
-    def validate_office_code(self, value):
-        return self._unique_code(value, "office_code")
-
-    def validate_website_code(self, value):
-        return self._unique_code(value, "website_code")
-
-    def _unique_code(self, value, field):
-        """یگانگی کدها بدون توجه به بزرگی/کوچکی حروف (مطابق ایندکس NOCASE)."""
-        value = str(value or "").strip()
-        qs = Product.objects.filter(**{f"{field}__iexact": value})
-        if self.instance is not None:
-            qs = qs.exclude(id=self.instance.id)
-        if value and qs.exists():
-            raise serializers.ValidationError("این کد قبلاً استفاده شده است")
-        return value
-
-    def validate_purchase_type(self, value):
-        value = str(value or "person").strip()
-        return value if value in SALE_TYPE_FA else "person"
-
-    def validate_name(self, value):
-        if not str(value or "").strip():
-            raise serializers.ValidationError("نام ساعت الزامی است")
-        return str(value).strip()
-
 
 # ---------------------------------------------------------------- sales
 class SaleSerializer(serializers.ModelSerializer):
-    """همان شکل sale_dict — فقط خواندنی. نوشتن با SaleWriteSerializer."""
+    """One sale, with joined product fields and Jalali display fields.
+
+    Mirrors ``utils.sale_dict``.  Read-only: sales are created/edited
+    through the ViewSet, which delegates to the transactional service
+    functions (deposit receipts, stock flip, invoice codes).
+    """
+
     product_id = serializers.IntegerField(source="product.pk", read_only=True)
     is_settled = serializers.SerializerMethodField()
     product_name = serializers.SerializerMethodField()
@@ -159,6 +158,7 @@ class SaleSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def _p(self, obj):
+        """The linked product, or ``None`` when it was cascade-deleted."""
         return getattr(obj, "product", None)
 
     def get_is_settled(self, obj):
@@ -234,46 +234,18 @@ class SaleSerializer(serializers.ModelSerializer):
         return fa_num(obj.customer_phone)
 
     def get_invoice_code(self, obj):
+        """Stored manual code, or the auto ``TT-<jy><jm>-<id>`` fallback."""
         return obj.invoice_code or invoice_code(obj.id, obj.sale_date)
-
-
-class SaleWriteSerializer(serializers.Serializer):
-    """ورودی ثبت/ویرایش فروش — همان قواعد API قدیمی."""
-    product_id = serializers.IntegerField(required=False)
-    sale_price = serializers.FloatField(required=False, min_value=0)
-    discount_price = serializers.FloatField(required=False, min_value=0)
-    sale_date = serializers.CharField(required=False, allow_blank=True,
-                                      help_text="تاریخ شمسی مثل 1404/05/12 یا ISO")
-    customer = serializers.CharField(required=False, allow_blank=True)
-    customer_phone = serializers.CharField(required=False, allow_blank=True)
-    sale_type = serializers.CharField(required=False, default="person")
-    payment_type = serializers.CharField(required=False, default="cash")
-    paid_cash = serializers.FloatField(required=False, min_value=0)
-    paid_pos = serializers.FloatField(required=False, min_value=0)
-    paid_card2card = serializers.FloatField(required=False, min_value=0)
-    invoice_code = serializers.CharField(required=False, allow_blank=True, max_length=40)
-    notes = serializers.CharField(required=False, allow_blank=True)
-
-    def validate_sale_date(self, value):
-        value = str(value or "").strip()
-        if not value:
-            return ""
-        parsed = parse_jalali_date(value)
-        if not parsed:
-            raise serializers.ValidationError("تاریخ فروش معتبر نیست")
-        return parsed
-
-    def validate_sale_type(self, value):
-        value = str(value or "person").strip()
-        return value if value in SALE_TYPE_FA else "person"
-
-    def validate_payment_type(self, value):
-        return "deposit" if str(value or "").strip() == "deposit" else "cash"
 
 
 # ---------------------------------------------------------------- payments
 class PaymentSerializer(serializers.ModelSerializer):
-    """همان شکل payment_dict — فقط خواندنی."""
+    """One payment record (deposit receipt or standalone installment).
+
+    Mirrors ``utils.payment_dict``: remaining balance, paid percentage and
+    the joined product details used by the payments page cards.
+    """
+
     remaining = serializers.SerializerMethodField()
     paid_percent = serializers.SerializerMethodField()
     total_amount_display = serializers.SerializerMethodField()
@@ -332,6 +304,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         return fa_num(obj.customer_phone)
 
     def _p(self, obj):
+        """The optionally linked product (``None`` for free-form records)."""
         return getattr(obj, "product", None)
 
     def get_product_image(self, obj):
@@ -366,25 +339,14 @@ class PaymentSerializer(serializers.ModelSerializer):
         return fa_date(d) if d else ""
 
 
-class PaymentAddSerializer(serializers.Serializer):
-    """پرداخت جدید روی فقره."""
-    amount = serializers.FloatField(min_value=0.01)
-    pay_date = serializers.CharField(required=False, allow_blank=True)
-    notes = serializers.CharField(required=False, allow_blank=True)
-
-    def validate_pay_date(self, value):
-        value = str(value or "").strip()
-        if not value:
-            return ""
-        parsed = parse_jalali_date(value)
-        if not parsed:
-            raise serializers.ValidationError("تاریخ معتبر نیست")
-        return parsed
-
-
 # ---------------------------------------------------------------- repairs
 class RepairSerializer(serializers.ModelSerializer):
-    """همان شکل repair_dict — خواندنی و نوشتنی."""
+    """One repair ticket, mirroring ``utils.repair_dict``.
+
+    Writable fields are validated by the service layer; dates accept both
+    Jalali and ISO input through :class:`JalaliDateField`.
+    """
+
     is_warranty = serializers.BooleanField(required=False)
     is_warranty_int = serializers.SerializerMethodField()
     is_warranty_fa = serializers.SerializerMethodField()
@@ -440,21 +402,11 @@ class RepairSerializer(serializers.ModelSerializer):
     def get_customer_phone_fa(self, obj):
         return fa_num(obj.customer_phone)
 
-    def validate_status(self, value):
-        value = str(value or "").strip()
-        if value not in STATUS_FA:
-            raise serializers.ValidationError("وضعیت تعمیر معتبر نیست")
-        return value
-
-    def validate_watch_name(self, value):
-        if not str(value or "").strip():
-            raise serializers.ValidationError("نام ساعت الزامی است")
-        return str(value).strip()
-
 
 # ---------------------------------------------------------------- tracking
 class TrackingSerializer(serializers.ModelSerializer):
-    """همان شکل tracking_dict — خواندنی و نوشتنی."""
+    """One order-tracking record, mirroring ``utils.tracking_dict``."""
+
     status_fa = serializers.SerializerMethodField()
     status_color = serializers.SerializerMethodField()
     price_display = serializers.SerializerMethodField()
@@ -482,14 +434,3 @@ class TrackingSerializer(serializers.ModelSerializer):
 
     def get_customer_phone_fa(self, obj):
         return fa_num(obj.customer_phone)
-
-    def validate_status(self, value):
-        value = str(value or "").strip()
-        if value not in TRACKING_STATUS_FA:
-            raise serializers.ValidationError("وضعیت پیگیری معتبر نیست")
-        return value
-
-    def validate_item_name(self, value):
-        if not str(value or "").strip():
-            raise serializers.ValidationError("نام آیتم الزامی است")
-        return str(value).strip()

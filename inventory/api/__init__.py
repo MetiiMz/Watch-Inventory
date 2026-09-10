@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
-"""لایه‌ی API نسخه‌ی ۱ — Django REST Framework.
+"""Versioned API layer — Django REST Framework under ``/api/v1/``.
 
-قرارداد:
-- همه‌ی endpoint ها زیر /api/v1/ هستند و مستقل از فرانت‌اند فعلی کار می‌کنند.
-- فیلدهای محاسباتی نمایشی (…_fa، …_display، …_color) دقیقاً با کلیدهای
-  dict-builder های inventory/utils.py یکی هستند تا مهاجرت فرانت‌اند آسان باشد.
-- پاسخ‌ها استاندارد DRF هستند (بدون پوشش ok/error)؛ خطاها در body["detail"]
-  یا body (برای خطاهای اعتبارسنجی) برمی‌گردند.
+Layout:
+
+* ``services.py``   — all business rules (validation + transactional
+  writes); the single source of truth shared with ``compat.py``.
+* ``serializers.py`` — DRF serializers (read shapes for every resource).
+* ``views.py``      — ViewSets + infrastructure APIViews.
+* ``urls.py``       — the router and non-ViewSet routes.
+* ``fields.py``     — the Jalali date input field.
+* ``compat.py``     — legacy-shape endpoints the current frontend calls,
+  backed by the same services (thin adapters, no logic).
 """
