@@ -2,7 +2,7 @@
 
 > Commit-style activity log. Newest entries first. One entry per meaningful action.
 
-## 2026-09-10 — API-first backend cleanup (`<commit>`)
+## 2026-09-10 — API-first backend cleanup (`96687f8`)
 
 - **Old static/legacy API views deleted:** the entire function-based API in `inventory/views/` (products, sales, payments, repairs, tracking, calendar, shared, backups, exportimport, settings_api, dashboard_api, common — ~1,550 lines) is gone. `inventory/views/` now contains ONLY `pages.py` (the 8 HTML page shells).
 - **New service core — `inventory/api/services.py`:** every business rule (validation with the original Persian error messages, transactional sale+receipt creation, stock flip on sale/delete, cascade bulk deletes, settlement sync, invoice codes, image housekeeping, calendar/report/export logic) now lives in ONE module as plain functions raising `ApiError(status, message)`.
