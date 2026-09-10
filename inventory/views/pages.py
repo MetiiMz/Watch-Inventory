@@ -47,7 +47,7 @@ def index(request):
 
 
 def dashboard(request):
-    """Dashboard page — stats, 12-month chart, brand cards, recent rows."""
+    """Dashboard page — stats, 12-month chart, brand table, recent rows."""
     stats = get_dashboard_stats()
     monthly = get_monthly_activity()
     brands = get_brand_breakdown()
@@ -59,13 +59,11 @@ def dashboard(request):
         Product.objects.exclude(purchase_date="")
         .order_by("-purchase_date", "-id")[:8]
     )
-    low = Product.objects.filter(available=False).order_by("name")[:6]
     ctx = page_ctx(request, "dashboard")
     ctx.update(
         stats=stats, monthly=monthly, brands=brands,
         recent_sales=[sale_dict(s) for s in sales_rows],
         recent_purchases=[product_dict(p) for p in purchase_rows],
-        low_stock=[product_dict(p) for p in low],
     )
     return render(request, "dashboard.html", ctx)
 

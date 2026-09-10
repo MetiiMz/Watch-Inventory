@@ -1082,47 +1082,6 @@ tr.row-selected { background: var(--accent-soft) !important; }
 .li-sub { font-size: 11px; color: var(--text-3); }
 .li-end { margin-inline-start: auto; text-align: left; flex: 0 0 auto; }
 
-.rank-num {
-  width: 30px; height: 30px;
-  border-radius: 10px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  font-weight: 800;
-  flex: 0 0 auto;
-}
-
-/* ------------------------------------------------ انبار بر اساس برند (داشبورد) */
-
-.brand-item {
-  padding: 11px 12px;
-  border: 1px solid var(--hairline);
-  border-radius: 14px;
-  background: var(--surface-soft);
-}
-.brand-top { display: flex; align-items: center; gap: 12px; }
-.brand-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 9px;
-  border-top: 1px dashed var(--hairline);
-}
-.brand-metrics > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.brand-metrics .bm-k { font-size: 10.5px; color: var(--text-3); }
-.brand-metrics .bm-v {
-  font-size: 12.5px;
-  font-weight: 800;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-variant-numeric: tabular-nums;
-}
-.brand-metrics .bm-v small { font-size: 9.5px; font-weight: 600; color: var(--text-3); }
-
 /* ------------------------------------------------ پاک‌سازی پایگاه‌داده (تنظیمات) */
 
 .danger-zone { border-color: rgba(229, 52, 43, 0.4); }

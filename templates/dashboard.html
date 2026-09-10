@@ -101,37 +101,32 @@
 
 <div class="mt-14">
   <section class="glass card">
-    <div class="card-title"><h3>انبار بر اساس برند</h3></div>
+    <div class="card-title">
+      <h3>انبار بر اساس برند</h3>
+      <span class="badge blue plain">{{ fa_num(brands | length) }} برند</span>
+    </div>
     {% if brands %}
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px">
-      {% for b in brands[:7] %}
-      <div class="brand-item">
-        <div class="brand-top">
-          <span class="rank-num">{{ fa_num(loop.index) }}</span>
-          <div class="li-main">
-            <div class="li-title">{{ b.brand or "بدون برند" }}</div>
-            <div class="li-sub">{{ fa_num(b.count) }} عدد در انبار</div>
-          </div>
-        </div>
-        <div class="brand-metrics">
-          <div>
-            <span class="bm-k">ارزش خرید</span>
-            <span class="bm-v">{{ fa_money(b.value) }} <small>تومان</small></span>
-          </div>
-          <div>
-            <span class="bm-k">ارزش فروش</span>
-            <span class="bm-v">{{ fa_money(b.sale_value) }} <small>تومان</small></span>
-          </div>
-          <div>
-            <span class="bm-k">سود بالقوه</span>
-            <span class="bm-v" style="color:var({% if b.profit >= 0 %}--green{% else %}--amber{% endif %})">{{ fa_money(b.profit) }} <small>تومان</small></span>
-          </div>
-        </div>
-      </div>
-      {% endfor %}
-      {% if brands | length > 7 %}
-      <div class="li-sub mt-8" style="text-align:center">و {{ fa_num(brands | length - 7) }} برند دیگر…</div>
-      {% endif %}
+    <div class="table-wrap">
+      <table class="data compact">
+        <thead><tr>
+          <th>برند</th>
+          <th>تعداد در انبار</th>
+          <th>جمع ارزش خرید</th>
+          <th>جمع ارزش فروش</th>
+          <th>سود بالقوه</th>
+        </tr></thead>
+        <tbody>
+          {% for b in brands %}
+          <tr>
+            <td><div class="p-name">{{ b.brand or "بدون برند" }}</div></td>
+            <td class="num">{{ fa_num(b.count) }} <small class="muted">عدد</small></td>
+            <td class="num">{{ fa_money(b.value) }}</td>
+            <td class="num">{{ fa_money(b.sale_value) }}</td>
+            <td class="num" style="color: var({% if b.profit >= 0 %}--green{% else %}--amber{% endif %})">{{ fa_money(b.profit) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
     {% else %}
     <div class="empty">
@@ -222,34 +217,6 @@
   </section>
 </div>
 
-<div class="mt-14">
-  <section class="glass card">
-    <div class="card-title">
-      <h3>ناموجودها</h3>
-      <span class="badge amber plain">{{ fa_num(stats.unavailable_count) }} مدل</span>
-    </div>
-    {% if low_stock %}
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px">
-      {% for p in low_stock %}
-      <div class="line-item" style="border:1px solid var(--hairline);border-radius:12px;padding:8px 12px">
-        {% if p.image %}<img class="thumb" style="width:36px;height:36px;border-radius:10px" src="/data/images/{{ p.image }}" alt="" loading="lazy">{% else %}<span class="thumb" style="width:36px;height:36px;border-radius:10px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="6.4"/><path d="M12 9.2V12l2.1 1.5"/></svg></span>{% endif %}
-        <span class="badge red plain">ناموجود</span>
-        <div class="li-main">
-          <div class="li-title">{{ p.name }}</div>
-          <div class="li-sub code-pill">{{ p.office_code }}</div>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty" style="padding: 30px 16px">
-      <div class="e-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m8.5 12.2 2.4 2.4 4.8-5"/></svg></div>
-      <h4>همه‌ی ساعت‌ها موجودند</h4>
-      <p>هیچ مدلی ناموجود نیست</p>
-    </div>
-    {% endif %}
-  </section>
-</div>
 {% endblock %}
 
 {% block scripts %}
