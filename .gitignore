@@ -1,7 +1,15 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
 .venv/
+venv/
+
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
 
 # Django collected static (whitenoise)
 staticfiles/
@@ -9,5 +17,42 @@ staticfiles/
 # Runtime data: live DBs, user images, backups, exports
 data/
 
-# Tooling artifacts
+# SQLite safety net (in case TIKOTIME_DB points outside data/)
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Logs & temp files
+logs/
+*.log
+*.tmp
+*.swp
+*~
+
+# Test / coverage / tooling caches
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
 .codebase-memory/
+
+# Editors / IDEs
+.vscode/
+.idea/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
